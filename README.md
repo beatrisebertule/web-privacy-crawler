@@ -1,3 +1,3 @@
-# Online Tracking and Privacy Group Project
+# Online Tracking and Privacy
 
 Playwright web crawler to perform a web privacy measurements.
