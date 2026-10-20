@@ -1,11 +1,10 @@
 from playwright.sync_api import sync_playwright
 
-def handle_req(r):
-    if r.resource_type == "script":
-        print(r.all_headers())
+def handle_req(request):
+    if request.resource_type == "script":
+        print(request.all_headers())
 
 if __name__=="__main__":
-    # example code from lecture
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         context = browser.new_context() # new profile
