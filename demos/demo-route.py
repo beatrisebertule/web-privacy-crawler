@@ -22,7 +22,6 @@ if __name__=="__main__":
         page.route("**/*", block_assets)
         page.goto('https://www.ru.nl')
         page.get_by_role("button", name = "Alle cookies toestaan").click()
-        # page.screenshot(path="assets/ru-headfull.png")
 
         page.wait_for_timeout(10000)
         browser.close()

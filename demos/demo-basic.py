@@ -15,7 +15,7 @@ if __name__=="__main__":
         # page.on("response", lambda response: print("<<<", response.status, response.url[:64]))
         page.goto('https://www.ru.nl')
         
-        page.screenshot(path="assets/ru-headfull.png")
+        page.screenshot(path="screenshots/ru-headfull.png")
 
         page.wait_for_timeout(10000)
         browser.close()
