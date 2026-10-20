@@ -1,15 +1,20 @@
 from playwright.sync_api import sync_playwright
-
+from time import sleep
 
 if __name__=="__main__":
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context() # new profile
-        page = context.new_page()
-    
-        page.goto('https://www.ru.nl')
         
-        # page.screenshot(path="assets/ru-headfull.png")
+        iphone_11 = p.devices['iPhone 11 Pro']
+        print(f"iphone_11: {iphone_11}")
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context(
+            **iphone_11
+        )
+        
+        page = context.new_page()
+        page.goto('https://www.ru.nl')
+        ua = page.evaluate("navigator.userAgent")
+        print(f"UA {ua}")
 
-        page.wait_for_timeout(10000)
+        sleep(120)
         browser.close()
