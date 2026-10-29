@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>banner with a decoy button</title></head>
+<body>
+<h1>University of Fixture</h1>
+<!-- Decoy comes first in the DOM, as on most real banners. -->
+<div id="cookie-banner" style="position:fixed;bottom:0;background:#ddd;padding:1em">
+  We use cookies.
+  <button onclick="document.title = 'clicked:' + this.textContent">Accept necessary only</button>
+  <button onclick="document.title = 'clicked:' + this.textContent">Accept all</button>
+</div>
+</body>
+</html>
