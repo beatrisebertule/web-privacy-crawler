@@ -36,6 +36,12 @@ ACCEPT_WORDS_PATH = REPO_ROOT / "accept_words.txt"
 
 MOBILE_DEVICE_NAME = "Pixel 10"
 
+# Scrolling. 400 px is about half a desktop viewport, so lazy-loaded content gets a chance
+# to appear between steps. 200 steps is 80,000 px, more than any homepage in sites.csv.
+SCROLL_STEP_PIXELS = 400
+SCROLL_MAX_STEPS = 200
+SCROLL_PAUSE_SECONDS = (0.1, 0.3)
+
 
 class CrawlMode(enum.Enum):
     """
@@ -204,15 +210,31 @@ def accept_cookies(page: Page, accept_words: list[str]) -> bool:
     return False
 
 
-def scroll_down(page: Page) -> None:
-    """Scroll down the page in random steps at random intervals, to look less like a bot."""
-    at_bottom = False
-    while random.random() > 0.20 and not at_bottom:
-        page.mouse.wheel(0, 10 + int(200 * random.random()))
-        at_bottom = page.evaluate(
-            "() => window.scrollY + window.innerHeight + 100 >= document.documentElement.scrollHeight"
-        )
-        time.sleep(0.5 + random.random())
+def is_at_bottom(page: Page) -> bool:
+    # A couple of pixels of slack covers fractional scroll positions on scaled displays.
+    return page.evaluate(
+        "() => window.scrollY + window.innerHeight + 2 >= document.documentElement.scrollHeight"
+    )
+
+
+def scroll_down(
+    page: Page,
+    step_pixels: int = SCROLL_STEP_PIXELS,
+    max_steps: int = SCROLL_MAX_STEPS,
+    pause_seconds: tuple[float, float] = SCROLL_PAUSE_SECONDS,
+) -> int:
+    """
+    Scroll to the bottom of the page in fixed steps with a short random pause between them.
+
+    Step count is capped so a page that keeps growing as you scroll cannot hang the visit.
+    Returns the number of steps taken.
+    """
+    for steps_taken in range(max_steps):
+        if is_at_bottom(page):
+            return steps_taken
+        page.mouse.wheel(0, step_pixels)
+        time.sleep(random.uniform(*pause_seconds))
+    return max_steps
 
 
 # *******************************************
