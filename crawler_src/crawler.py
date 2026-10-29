@@ -114,43 +114,119 @@ def add_to_crawled_list(crawled_list_path, website_domain, country_code):
 # Crawlers
 # --------------------------------------------------------------------
 
+# def crawler_desktop(sites_to_crawl, accept_list):
+#     """Crawl the list of websites in desktop mode"""
+#     with sync_playwright() as p:
+#         browser = p.chromium.launch(headless=False)
+#         context = browser.new_context(
+#             record_har_path="crawl_data_desktop/crawler_desktop.har",
+#             record_har_content="omit",
+#             record_har_mode="full",
+#             record_video_dir="videos/"
+#         )
+#         remaining_sites_to_crawl = [site for site in sites_to_crawl if site not in read_crawled_list("crawled_list.txt")] # Filter out already crawled sites
+#         for (website_domain, country_code) in remaining_sites_to_crawl:
+#             page = context.new_page()
+#             try:
+#                 print(f"Crawling {website_domain}...")
+#                 page.goto("https://" + website_domain)
+#                 time.sleep(10) # Wait for 10 seconds
+#                 page.screenshot(path=f"crawl_data_desktop/{website_domain}_pre_consent.png", full_page=True)
+#                 accept_cookies(page, accept_list)
+#                 time.sleep(5) # Wait for 5 seconds
+#                 page.screenshot(path=f"crawl_data_desktop/{website_domain}_post_consent.png", full_page=True)
+#                 scroll_down(page)
+#                 time.sleep(5) # Wait for 5 seconds
+#             except Exception as e:
+#                 print(f"Error while crawling {website_domain}: {e}")
+#             finally:
+#                 page.close()
+#                 Path(page.video.path()).rename(f"crawl_data_desktop/{website_domain}.webm")
+#                 add_to_crawled_list("crawled_list.txt", website_domain, country_code)
+#                 print(f"Finished crawling {website_domain}.")
+
+#         context.close()
+#         browser.close()
+
 def crawler_desktop(sites_to_crawl, accept_list):
     """Crawl the list of websites in desktop mode"""
+    os.makedirs("crawl_data_desktop", exist_ok=True)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
-        context = browser.new_context(
-            record_har_path="hars/crawler_desktop.har",
-            record_har_content="omit",
-            record_har_mode="full",
-            record_video_dir="videos/"
-        )
-        remaining_sites_to_crawl = [site for site in sites_to_crawl if site not in read_crawled_list("crawled_list.txt")] # Filter out already crawled sites
+
+        remaining_sites_to_crawl = [site for site in sites_to_crawl
+                                    if site not in read_crawled_list("crawled_list.txt")]  # Filter out already crawled sites
         for (website_domain, country_code) in remaining_sites_to_crawl:
+            # One context per site -> one HAR file per site
+            context = browser.new_context(
+                record_har_path=f"crawl_data_desktop/{website_domain}.har",
+                record_har_content="omit",
+                record_har_mode="full",
+                record_video_dir="crawl_data_desktop/",
+            )
             page = context.new_page()
             try:
                 print(f"Crawling {website_domain}...")
                 page.goto("https://" + website_domain)
-                time.sleep(10) # Wait for 10 seconds
-                page.screenshot(path=f"screenshots/{website_domain}_before_consent.png", full_page=True)
+                time.sleep(10)  # Wait for 10 seconds
+                page.screenshot(path=f"crawl_data_desktop/{website_domain}_pre_consent.png", full_page=True)
                 accept_cookies(page, accept_list)
-                time.sleep(5) # Wait for 5 seconds
-                page.screenshot(path=f"screenshots/{website_domain}_after_consent.png", full_page=True)
+                time.sleep(5)  # Wait for 5 seconds
+                page.screenshot(path=f"crawl_data_desktop/{website_domain}_post_consent.png", full_page=True)
                 scroll_down(page)
-                time.sleep(5) # Wait for 5 seconds
+                time.sleep(5)  # Wait for 5 seconds
             except Exception as e:
                 print(f"Error while crawling {website_domain}: {e}")
             finally:
+                video_path = page.video.path()
                 page.close()
-                Path(page.video.path()).rename(f"videos/crawler_desktop_{website_domain}.webm")
+                context.close()  # <- writes crawl_data_desktop/{website_domain}.har
+                Path(video_path).rename(f"crawl_data_desktop/{website_domain}.webm")
                 add_to_crawled_list("crawled_list.txt", website_domain, country_code)
                 print(f"Finished crawling {website_domain}.")
 
-        context.close()
         browser.close()
 
-def crawler_mobile():
-    print("TODO: Implement!")
-    return None
+
+def crawler_mobile(sites_to_crawl, accept_list):
+    """Crawl the list of websites in mobile mode"""
+    with sync_playwright() as p:
+        pixel = p.devices["Pixel 10"]          # was: p.deviesp (typo)
+        browser = p.chromium.launch(headless=False)
+
+        sites_to_crawl = [site for site in sites_to_crawl
+                                    if site not in read_crawled_list("crawled_list.txt")]
+        for (website_domain, country_code) in sites_to_crawl:
+            context = browser.new_context(
+                **pixel,
+                record_har_path=f"crawl_data_mobile/{website_domain}.har",
+                record_har_content="omit",
+                record_har_mode="full",
+                record_video_dir="crawl_data_mobile/",
+            )
+            page = context.new_page()
+            try:
+                print(f"Crawling {website_domain}...")
+                page.goto("https://" + website_domain)
+                time.sleep(10)
+                page.screenshot(path=f"crawl_data_mobile/{website_domain}_pre_consent.png", full_page=True)
+                accept_cookies(page, accept_list)
+                time.sleep(5)
+                page.screenshot(path=f"crawl_data_mobile/{website_domain}_post_consent.png", full_page=True)
+                scroll_down(page)
+                time.sleep(5)
+            except Exception as e:
+                print(f"Error while crawling {website_domain}: {e}")
+            finally:
+                video_path = page.video.path()
+                page.close()
+                context.close()   
+                Path(video_path).rename(f"crawl_data_mobile/{website_domain}.webm")
+                add_to_crawled_list("crawled_list.txt", website_domain, country_code)
+                print(f"Finished crawling {website_domain}.")
+
+        browser.close()
+
 
 def crawler_block():
     print("TODO: Implement!")
@@ -173,14 +249,12 @@ if __name__ == "__main__":
 
     print(f"Crawl mode: {crawl_mode}")
     print(f"Loaded {len(sites_to_crawl)} websites from {command_line_arguments.site_list_path}")
-    # for website_domain, country_code in sites_to_crawl:
-    #     print(f"  {website_domain} ({country_code})")
 
     match crawl_mode:
         case "desktop":
             crawler_desktop(sites_to_crawl, accept_list)
         case "mobile":
-            crawler_mobile()
+            crawler_mobile(sites_to_crawl, accept_list)
         case "block":
             crawler_block()
         case "ignore":
