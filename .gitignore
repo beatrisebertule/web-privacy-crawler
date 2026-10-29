@@ -1,0 +1,11 @@
+# Crawl output. HARs, screenshots and videos for 120 visits are too big for the repo and are
+# shared separately. The resume lists are per machine too.
+crawl_data_*/
+crawled_*.txt
+crawled_list.txt
+
+# Python
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
