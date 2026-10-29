@@ -30,7 +30,7 @@ def test_scroll_reaches_bottom_of_tall_page(fresh_page: Page, fixture_server_url
     steps_taken = scroll_down(fresh_page, pause_seconds=NO_PAUSE)
 
     assert distance_from_bottom(fresh_page) <= 2
-    # (10000 - 720) / 400 is 24 steps. A wheel event can land a few pixels short, so allow slack.
+    # (10000 - 720) / 400 is 24 steps. A wheel event can land a few pixels short.
     assert 24 <= steps_taken <= 27
 
 
@@ -49,5 +49,5 @@ def test_scroll_gives_up_on_infinite_page(fresh_page: Page, fixture_server_url: 
     steps_taken = scroll_down(fresh_page, max_steps=30, pause_seconds=NO_PAUSE)
 
     assert steps_taken == 30
-    # The page kept growing as we scrolled, which is the case the cap exists for.
+    # Page kept growing as we scrolled. That is what the cap is for.
     assert fresh_page.evaluate("document.documentElement.scrollHeight") > 1000

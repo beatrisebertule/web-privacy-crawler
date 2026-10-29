@@ -1,8 +1,8 @@
 """
-Shared fixtures: a local web server for the fixture pages and one headless browser.
+Shared fixtures. A local web server for the fixture pages and one headless browser.
 
-Fixture names avoid `page`, `browser` and `playwright` on purpose. The pytest-playwright plugin
-claims those names, and anyone who happens to have it installed would otherwise get a clash.
+Fixture names avoid `page`, `browser` and `playwright`. pytest-playwright claims those names
+and clashes with them when installed.
 """
 
 # Standard library imports
@@ -18,7 +18,7 @@ import pytest
 from playwright.sync_api import Browser, Page, Playwright, sync_playwright
 
 # Local package imports
-# crawler_src is not a package, so the tests add it to the path rather than install anything.
+# crawler_src is not a package. Path entry instead of an install.
 TESTS_DIRECTORY = Path(__file__).resolve().parent
 sys.path.insert(0, str(TESTS_DIRECTORY.parent / "crawler_src"))
 
@@ -26,7 +26,7 @@ from crawler import WaitSchedule  # noqa: E402
 
 FIXTURES_DIRECTORY = TESTS_DIRECTORY / "fixtures"
 
-# Every wait zeroed. The schedule is the assignment's, not something the tests check.
+# Every wait zeroed. Schedule is the assignment's, not something the tests check.
 NO_WAITS = WaitSchedule(after_page_load=0, after_consent=0, after_scroll=0)
 
 

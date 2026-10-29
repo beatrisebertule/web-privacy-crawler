@@ -1,5 +1,5 @@
 """
-Resume list: a crashed crawl must not re-crawl finished sites, and each mode keeps its own list.
+Resume list. A crashed crawl must not re-crawl finished sites, and each mode keeps its own list.
 
 Everything here is plain file logic. No browser needed.
 """

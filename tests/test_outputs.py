@@ -126,7 +126,7 @@ def test_mobile_mode_sends_pixel_user_agent(
     )
 
     # Sites pick their mobile variant from the User-Agent header.
-    # Screenshot width is no good here: a page without a viewport meta tag lays out at 980 CSS px.
+    # Screenshot width is no good here. A page without a viewport meta tag lays out at 980 CSS px.
     har = json.loads((tmp_path / "fixture.edu.har").read_text(encoding="utf-8"))
     page_entry = next(
         entry for entry in har["log"]["entries"]
