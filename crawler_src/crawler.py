@@ -17,37 +17,53 @@ import argparse
 import csv
 import enum
 import random
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 # Third party imports
-from playwright.sync_api import Browser, Page, Playwright, sync_playwright
+from playwright.sync_api import Browser, Error as PlaywrightError, Locator, Page, Playwright, sync_playwright
 
 
 # *******************************************
 # Constants
 # *******************************************
 
-# Paths resolve against the repo root, so the crawler runs the same from any working directory.
+# Paths are relative to the repo root, not the working directory.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ACCEPT_WORDS_PATH = REPO_ROOT / "accept_words.txt"
 
 MOBILE_DEVICE_NAME = "Pixel 10"
 
-# Scrolling. 400 px is about half a desktop viewport, so lazy-loaded content gets a chance
-# to appear between steps. 200 steps is 80,000 px, more than any homepage in sites.csv.
+# Scrolling
+# Half a desktop viewport per step gives lazy-loaded content time to appear.
+# 200 steps is 80,000 px, taller than any homepage in `sites.csv`.
 SCROLL_STEP_PIXELS = 400
 SCROLL_MAX_STEPS = 200
 SCROLL_PAUSE_SECONDS = (0.1, 0.3)
 
+# Consent
+CLICKABLE_SELECTOR = "button, a, [role=button], input[type=button], input[type=submit]"
+CLICK_TIMEOUT_MILLISECONDS = 3000
+
+# Words that mark a button as a refusal or a settings link, matched whole against the
+# normalized button text. Keeps a substring match on "accept" off "accept necessary only".
+REFUSAL_WORDS = (
+    "necessary", "essential", "only", "required",
+    "reject", "decline", "deny", "refuse", "disagree",
+    "settings", "preferences", "manage", "customize", "customise", "options", "more",
+    "weigeren", "noodzakelijk", "noodzakelijke", "alleen", "instellingen", "voorkeuren", "aanpassen",
+)
+
 
 class CrawlMode(enum.Enum):
     """
-    The four crawl configurations from the assignment.
+    Four crawl configurations from the assignment.
 
-    Desktop, mobile and block accept the consent dialog. Ignore never touches it.
+    Desktop, mobile and block accept the consent dialog.
+    Ignore never touches it.
     """
 
     DESKTOP = "desktop"
@@ -65,7 +81,7 @@ class CrawlMode(enum.Enum):
 
     @property
     def crawled_list_path(self) -> Path:
-        # One resume file per mode, so finishing the desktop crawl doesn't skip the mobile one.
+        # One resume file per mode. A shared one made the second crawl skip everything.
         return REPO_ROOT / f"crawled_{self.value}.txt"
 
 
@@ -74,9 +90,9 @@ class WaitSchedule:
     """
     Seconds to sleep between crawl steps.
 
-    Defaults are the assignment's schedule:
-    page load -> 10 s -> accept -> 5 s -> scroll -> 5 s -> close.
-    Tests pass zeros so a visit to a local fixture page takes a second.
+    Defaults are the assignment's schedule.
+    page load -> 10 s -> accept -> 5 s -> scroll -> 5 s -> close
+    Tests pass zeros.
     """
 
     after_page_load: float = 10.0
@@ -86,7 +102,7 @@ class WaitSchedule:
 
 @dataclass
 class VisitResult:
-    """What one visit produced, for the caller's log and for tests."""
+    """Outcome of one visit. `error` is None on success."""
 
     site_name: str
     final_url: str | None = None
@@ -103,7 +119,12 @@ class VisitResult:
 # *******************************************
 
 def parse_command_line_arguments() -> argparse.Namespace:
-    """Parse and validate the crawler's command line options."""
+    """
+    Parse `-m` and `-l` and check the site list exists.
+
+    :return: Namespace with `crawl_mode` as a `CrawlMode` and `site_list_path` as a `Path`.
+    :rtype: argparse.Namespace
+    """
     argument_parser = argparse.ArgumentParser(
         description="Crawl university homepages for a web privacy measurement."
     )
@@ -133,9 +154,13 @@ def parse_command_line_arguments() -> argparse.Namespace:
 
 def read_site_list(site_list_path: Path) -> list[tuple[str, str]]:
     """
-    Return (website_domain, country_code) tuples from the site CSV.
+    Read the site list CSV.
 
-    First row is a header and is skipped. Empty and malformed rows are skipped too.
+    First row is a header. Empty and malformed rows are skipped.
+
+    :param site_list_path: CSV with `domain,country,...` per line
+    :return: `(website_domain, country_code)` pairs in file order, country lowercased
+    :rtype: list[tuple[str, str]]
     """
     sites_to_crawl = []
     with open(site_list_path, newline="", encoding="utf-8") as site_list_file:
@@ -151,7 +176,13 @@ def read_site_list(site_list_path: Path) -> list[tuple[str, str]]:
 
 
 def read_accept_words(accept_words_path: Path) -> list[str]:
-    """Return the consent button phrases, one per line, in file order."""
+    """
+    Read the consent button phrases.
+
+    :param accept_words_path: text file, one phrase per line
+    :return: Non-empty lines, stripped, in file order.
+    :rtype: list[str]
+    """
     with open(accept_words_path, encoding="utf-8") as accept_words_file:
         return [line.strip() for line in accept_words_file if line.strip()]
 
@@ -161,7 +192,13 @@ def read_accept_words(accept_words_path: Path) -> list[str]:
 # *******************************************
 
 def read_crawled_list(crawled_list_path: Path) -> set[tuple[str, str]]:
-    """Return the (website_domain, country_code) pairs already finished in this mode."""
+    """
+    Read the resume list for one mode.
+
+    :param crawled_list_path: CSV written by `add_to_crawled_list`, may not exist yet
+    :return: `(website_domain, country_code)` pairs already finished. Empty if no file.
+    :rtype: set[tuple[str, str]]
+    """
     if not crawled_list_path.is_file():
         return set()
     crawled_sites = set()
@@ -174,7 +211,13 @@ def read_crawled_list(crawled_list_path: Path) -> set[tuple[str, str]]:
 
 
 def add_to_crawled_list(crawled_list_path: Path, website_domain: str, country_code: str) -> None:
-    """Append one finished site to the resume list."""
+    """
+    Append one finished site to the resume list.
+
+    :param crawled_list_path: resume CSV for this mode, created on first write
+    :param website_domain: as it appears in the site list
+    :param country_code: two-letter code from the site list
+    """
     with open(crawled_list_path, "a", newline="", encoding="utf-8") as crawled_list_file:
         csv.writer(crawled_list_file).writerow([website_domain, country_code])
 
@@ -183,7 +226,14 @@ def select_sites_to_crawl(
     sites: list[tuple[str, str]],
     crawled_list_path: Path,
 ) -> list[tuple[str, str]]:
-    """Return the sites not yet in the resume list, in site list order."""
+    """
+    Drop the sites already in the resume list.
+
+    :param sites: `(website_domain, country_code)` pairs from `read_site_list`
+    :param crawled_list_path: resume CSV for this mode
+    :return: Remaining sites, in site list order.
+    :rtype: list[tuple[str, str]]
+    """
     already_crawled = read_crawled_list(crawled_list_path)
     return [site for site in sites if site not in already_crawled]
 
@@ -192,26 +242,134 @@ def select_sites_to_crawl(
 # Page interaction
 # *******************************************
 
+def normalize_button_text(text: str) -> str:
+    """
+    Lowercase, drop punctuation and symbols, collapse whitespace. Keeps `&`.
+
+    example: "  Accept All Cookies ✓ " -> "accept all cookies"
+
+    :param text: button text as the page shows it
+    :return: Normalized text, "" if nothing is left.
+    :rtype: str
+    """
+    letters_and_spaces = re.sub(r"[^\w\s&]", " ", text.lower())
+    return " ".join(letters_and_spaces.split())
+
+
+def looks_like_a_refusal(normalized_text: str) -> bool:
+    """
+    Whole-word check against `REFUSAL_WORDS`.
+
+    example: "accept necessary only" -> True
+    example: "accept the essentials" -> False
+
+    :param normalized_text: output of `normalize_button_text`
+    :rtype: bool
+    """
+    return any(refusal_word in normalized_text.split() for refusal_word in REFUSAL_WORDS)
+
+
+def contains_phrase(normalized_text: str, normalized_phrase: str) -> bool:
+    """
+    Whole-word phrase search.
+
+    example: ("accept all cookies recommended", "accept all") -> True
+    example: ("facebook", "ok") -> False
+
+    :param normalized_text: output of `normalize_button_text`
+    :param normalized_phrase: output of `normalize_button_text`
+    :rtype: bool
+    """
+    return f" {normalized_phrase} " in f" {normalized_text} "
+
+
+def collect_clickables(page: Page) -> list[tuple[Locator, str]]:
+    """
+    Gather every clickable in every frame with its normalized text.
+
+    Visibility is not checked here. That is one round trip per element, and the caller
+    only needs it for the few that match.
+
+    :param page: page after load, frames included
+    :return: `(locator, normalized_text)` pairs in frame and document order, empty text dropped
+    :rtype: list[tuple[Locator, str]]
+    """
+    clickables = []
+    for frame in page.frames:
+        candidates = frame.locator(CLICKABLE_SELECTOR)
+        # One evaluate per frame, not one per element.
+        texts = candidates.evaluate_all(
+            "elements => elements.map(element =>"
+            " element.innerText || element.value || element.getAttribute('aria-label') || '')"
+        )
+        for index, text in enumerate(texts):
+            normalized = normalize_button_text(text)
+            if normalized:
+                clickables.append((candidates.nth(index), normalized))
+    return clickables
+
+
+def choose_accept_button(
+    clickables: list[tuple[Locator, str]],
+    accept_words: list[str],
+) -> Locator | None:
+    """
+    Pick the clickable that best matches the accept phrases.
+
+    Two passes, longest phrase first in each.
+    Pass 1 takes an exact match.
+    Pass 2 takes a whole-word match, skipping anything `looks_like_a_refusal`.
+    Whole words, not substrings. "ok" is inside "facebook".
+
+    :param clickables: output of `collect_clickables`
+    :param accept_words: phrases from `read_accept_words`, any case
+    :return: Best match, or None.
+    :rtype: Locator | None
+    """
+    phrases_longest_first = sorted(
+        {normalize_button_text(phrase) for phrase in accept_words}, key=len, reverse=True
+    )
+    for phrase in phrases_longest_first:
+        for locator, text in clickables:
+            if text == phrase:
+                return locator
+    for phrase in phrases_longest_first:
+        for locator, text in clickables:
+            if contains_phrase(text, phrase) and not looks_like_a_refusal(text):
+                return locator
+    return None
+
+
 def accept_cookies(page: Page, accept_words: list[str]) -> bool:
     """
-    Click the first button whose text contains one of the accept phrases.
+    Click the consent dialog's accept button, in whichever frame it lives.
 
-    Phrases are tried in file order. Returns whether anything was clicked.
+    A hidden or unclickable best match is dropped and the next best tried.
+
+    :param page: page after load and the post-load wait
+    :param accept_words: phrases from `read_accept_words`
+    :return: Whether anything was clicked.
+    :rtype: bool
     """
-    try:
-        for accept_phrase in accept_words:
-            button_selector = f'button:has-text("{accept_phrase}")'
-            if page.query_selector(button_selector):
-                page.click(button_selector)
+    clickables = collect_clickables(page)
+    while clickables:
+        chosen = choose_accept_button(clickables, accept_words)
+        if chosen is None:
+            return False
+        try:
+            if chosen.is_visible():
+                chosen.click(timeout=CLICK_TIMEOUT_MILLISECONDS)
                 print("Accepted cookies.")
                 return True
-    except Exception as click_error:
-        print("No cookies consent accept button found:", click_error)
+        except PlaywrightError as click_error:
+            # Covered by another element, detached, or the page navigated.
+            print(f"Consent click failed, trying next candidate: {click_error}")
+        clickables = [(locator, text) for locator, text in clickables if locator is not chosen]
     return False
 
 
 def is_at_bottom(page: Page) -> bool:
-    # A couple of pixels of slack covers fractional scroll positions on scaled displays.
+    # Two pixels of slack for fractional scroll positions on scaled displays.
     return page.evaluate(
         "() => window.scrollY + window.innerHeight + 2 >= document.documentElement.scrollHeight"
     )
@@ -224,10 +382,16 @@ def scroll_down(
     pause_seconds: tuple[float, float] = SCROLL_PAUSE_SECONDS,
 ) -> int:
     """
-    Scroll to the bottom of the page in fixed steps with a short random pause between them.
+    Scroll to the bottom in fixed steps with a short random pause between them.
 
-    Step count is capped so a page that keeps growing as you scroll cannot hang the visit.
-    Returns the number of steps taken.
+    Step cap is for pages that grow as you scroll.
+
+    :param page: page to scroll
+    :param step_pixels: wheel distance per step
+    :param max_steps: give up after this many steps
+    :param pause_seconds: `(low, high)` range for the pause after each step
+    :return: Steps taken. Equals `max_steps` if the bottom was never reached.
+    :rtype: int
     """
     for steps_taken in range(max_steps):
         if is_at_bottom(page):
@@ -247,7 +411,19 @@ def build_context_options(
     output_directory: Path,
     site_name: str,
 ) -> dict:
-    """Playwright context options for one visit: device emulation plus HAR and video recording."""
+    """
+    Context options for one visit.
+
+    HAR and video recording always. Pixel 10 emulation in mobile mode.
+    HAR content is omitted. Headers are all the analysis reads.
+
+    :param playwright: running Playwright, for its device list
+    :param crawl_mode: decides device emulation
+    :param output_directory: where the HAR and video go
+    :param site_name: names the HAR file
+    :return: Keyword arguments for `browser.new_context`.
+    :rtype: dict
+    """
     context_options = {
         "record_har_path": str(output_directory / f"{site_name}.har"),
         "record_har_content": "omit",
@@ -270,10 +446,22 @@ def visit_site(
     waits: WaitSchedule = WaitSchedule(),
 ) -> VisitResult:
     """
-    Visit one URL in a fresh context and write its HAR, screenshots and video to `output_directory`.
+    Visit one URL in a fresh context. Writes HAR, screenshots and video.
 
-    `site_name` names the output files, so `ru.nl` gives `ru.nl.har`, `ru.nl_pre_consent.png`,
-    `ru.nl_post_consent.png` (not in ignore mode) and `ru.nl.webm`.
+    Output files for `site_name` "ru.nl":
+    `ru.nl.har`, `ru.nl_pre_consent.png`, `ru.nl_post_consent.png`, `ru.nl.webm`
+    Ignore mode writes no post-consent screenshot.
+
+    :param browser: launched browser, shared across visits
+    :param playwright: running Playwright, for the device list
+    :param crawl_mode: which of the four crawls this is
+    :param site_name: names the output files
+    :param url: what to open
+    :param output_directory: created if missing
+    :param accept_words: phrases from `read_accept_words`
+    :param waits: sleeps between steps, assignment defaults
+    :return: What happened. `error` is set and the rest best effort if the visit threw.
+    :rtype: VisitResult
     """
     output_directory.mkdir(parents=True, exist_ok=True)
     result = VisitResult(site_name=site_name)
@@ -334,7 +522,17 @@ def crawl_sites(
     """
     Visit every site not yet in the resume list, one at a time, and record each as done.
 
-    `url_for_site` turns a site name into the URL to open. Tests swap it for a localhost builder.
+    :param browser: launched browser, shared across visits
+    :param playwright: running Playwright
+    :param crawl_mode: which of the four crawls this is
+    :param sites: `(website_domain, country_code)` pairs from `read_site_list`
+    :param accept_words: phrases from `read_accept_words`
+    :param output_directory: where every visit writes its files
+    :param crawled_list_path: resume CSV for this mode
+    :param waits: sleeps between steps, assignment defaults
+    :param url_for_site: site name to URL. Tests point it at localhost.
+    :return: One result per site visited this run.
+    :rtype: list[VisitResult]
     """
     results = []
     for website_domain, country_code in select_sites_to_crawl(sites, crawled_list_path):
@@ -355,7 +553,14 @@ def crawl_sites(
 
 
 def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
-    """Launch one headful Chromium and crawl the site list in the given mode."""
+    """
+    Launch one headful Chromium and crawl the site list in the given mode.
+
+    Headful because some consent platforms serve nothing to a headless browser.
+
+    :param crawl_mode: which of the four crawls to run
+    :param site_list_path: CSV for `read_site_list`
+    """
     sites_to_crawl = read_site_list(site_list_path)
     accept_words = read_accept_words(ACCEPT_WORDS_PATH)
     print(f"Crawl mode: {crawl_mode.value}")

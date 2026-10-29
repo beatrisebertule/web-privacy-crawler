@@ -1,8 +1,8 @@
 """
 Consent handling against local banner pages.
 
-Each fixture button writes `clicked:<its text>` into the document title, so a test can read
-back exactly which element got clicked, or that nothing did.
+Each fixture button writes `clicked:<its text>` into the document title.
+A test reads the title back to see which element got clicked, or that nothing did.
 """
 
 # Third party imports
@@ -10,7 +10,13 @@ import pytest
 from playwright.sync_api import Page
 
 # Local package imports
-from crawler import ACCEPT_WORDS_PATH, accept_cookies, read_accept_words
+from crawler import (
+    ACCEPT_WORDS_PATH,
+    accept_cookies,
+    looks_like_a_refusal,
+    normalize_button_text,
+    read_accept_words,
+)
 
 
 @pytest.fixture(scope="module")
@@ -21,6 +27,35 @@ def accept_words() -> list[str]:
 def test_accept_words_file_is_non_empty_and_stripped(accept_words: list[str]) -> None:
     assert accept_words
     assert all(word == word.strip() and word for word in accept_words)
+
+
+@pytest.mark.parametrize(
+    ("raw_text", "normalized"),
+    [
+        ("  Accept All Cookies ✓ ", "accept all cookies"),
+        ("ACCEPT\n&\nCLOSE", "accept & close"),
+        ("Alles accepteren!", "alles accepteren"),
+        ("", ""),
+    ],
+)
+def test_normalize_button_text(raw_text: str, normalized: str) -> None:
+    assert normalize_button_text(raw_text) == normalized
+
+
+@pytest.mark.parametrize(
+    ("normalized_text", "is_refusal"),
+    [
+        ("accept necessary only", True),
+        ("cookie settings", True),
+        ("alleen noodzakelijke cookies", True),
+        ("accept all cookies", False),
+        ("ok", False),
+        # Whole words only. "essentials" is not "essential".
+        ("accept the essentials", False),
+    ],
+)
+def test_looks_like_a_refusal(normalized_text: str, is_refusal: bool) -> None:
+    assert looks_like_a_refusal(normalized_text) is is_refusal
 
 
 def test_clicks_single_accept_button(
@@ -45,11 +80,6 @@ def test_no_banner_clicks_nothing(
     assert fresh_page.title() == "no banner"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="bare 'accept' precedes 'accept all' in accept_words.txt and has-text is a substring match",
-)
 def test_prefers_accept_all_over_accept_necessary(
     fresh_page: Page, fixture_server_url: str, accept_words: list[str]
 ) -> None:
@@ -60,7 +90,27 @@ def test_prefers_accept_all_over_accept_necessary(
     assert fresh_page.title() == "clicked:Accept all"
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="accept_cookies only looks at <button> elements")
+def test_substring_match_skips_refusal_wording(
+    fresh_page: Page, fixture_server_url: str, accept_words: list[str]
+) -> None:
+    fresh_page.goto(f"{fixture_server_url}/banner_substring.html")
+
+    accept_cookies(fresh_page, accept_words)
+
+    assert fresh_page.title() == "clicked:Accept all cookies (recommended)"
+
+
+def test_refusal_only_banner_is_left_alone(
+    fresh_page: Page, fixture_server_url: str, accept_words: list[str]
+) -> None:
+    fresh_page.goto(f"{fixture_server_url}/banner_refusal_only.html")
+
+    clicked = accept_cookies(fresh_page, accept_words)
+
+    assert not clicked
+    assert fresh_page.title() == "banner with only refusal buttons"
+
+
 def test_clicks_link_styled_as_button(
     fresh_page: Page, fixture_server_url: str, accept_words: list[str]
 ) -> None:
@@ -72,7 +122,6 @@ def test_clicks_link_styled_as_button(
     assert fresh_page.title() == "clicked:Accept all cookies"
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="accept_cookies does not look inside iframes")
 def test_clicks_button_inside_iframe(
     fresh_page: Page, fixture_server_url: str, accept_words: list[str]
 ) -> None:
