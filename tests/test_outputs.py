@@ -161,7 +161,6 @@ def test_unreachable_site_is_reported_not_raised(
     assert result.error is not None
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="crawl_sites marks a site as crawled even when the visit failed")
 def test_failed_visit_is_not_marked_as_crawled(
     headless_browser: Browser,
     playwright_instance: Playwright,

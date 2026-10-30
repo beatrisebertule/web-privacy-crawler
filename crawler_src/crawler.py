@@ -532,7 +532,7 @@ def crawl_sites(
     url_for_site: Callable[[str], str] = homepage_url,
 ) -> list[VisitResult]:
     """
-    Visit every site not yet in the resume list, one at a time, and record each as done.
+    Visit every site not yet in the resume list, one at a time, and record each success as done.
 
     :param browser: launched browser, shared across visits
     :param playwright: running Playwright
@@ -558,7 +558,9 @@ def crawl_sites(
             accept_words,
             waits,
         )
-        add_to_crawled_list(crawled_list_path, website_domain, country_code)
+        # Failed visits stay out of resume list, next run retries.
+        if result.succeeded:
+            add_to_crawled_list(crawled_list_path, website_domain, country_code)
         print(f"Finished crawling {website_domain}.")
         results.append(result)
     return results
