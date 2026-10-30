@@ -84,6 +84,35 @@ def test_ignore_mode_writes_no_post_consent_screenshot_and_never_clicks(
     }
 
 
+def png_size(png_path: Path) -> tuple[int, int]:
+    # Width and height sit at bytes 16 to 24 of a PNG header.
+    header = png_path.read_bytes()[16:24]
+    return int.from_bytes(header[:4], "big"), int.from_bytes(header[4:], "big")
+
+
+def test_screenshots_are_viewport_not_full_page(
+    headless_browser: Browser,
+    playwright_instance: Playwright,
+    fixture_server_url: str,
+    accept_words: list[str],
+    tmp_path: Path,
+) -> None:
+    # Fixture page is 10000 px tall. Playwright's default viewport is 1280x720.
+    visit_site(
+        headless_browser,
+        playwright_instance,
+        CrawlMode.DESKTOP,
+        "fixture.edu",
+        f"{fixture_server_url}/tall_page.html",
+        tmp_path,
+        accept_words,
+        NO_WAITS,
+    )
+
+    assert png_size(tmp_path / "fixture.edu_pre_consent.png") == (1280, 720)
+    assert png_size(tmp_path / "fixture.edu_post_consent.png") == (1280, 720)
+
+
 def test_har_records_the_page_request(
     headless_browser: Browser,
     playwright_instance: Playwright,

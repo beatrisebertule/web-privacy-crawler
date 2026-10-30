@@ -487,14 +487,12 @@ def visit_site(
         print(f"Crawling {site_name}...")
         page.goto(url)
         time.sleep(waits.after_page_load)
-        page.screenshot(path=str(output_directory / f"{site_name}_pre_consent.png"), full_page=True)
+        page.screenshot(path=str(output_directory / f"{site_name}_pre_consent.png"))
 
         if crawl_mode.accepts_consent:
             result.consent_clicked = accept_cookies(page, accept_words)
             time.sleep(waits.after_consent)
-            page.screenshot(
-                path=str(output_directory / f"{site_name}_post_consent.png"), full_page=True
-            )
+            page.screenshot(path=str(output_directory / f"{site_name}_post_consent.png"))
 
         scroll_down(page)
         time.sleep(waits.after_scroll)
