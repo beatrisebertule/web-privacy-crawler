@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>banner with cookie level tiles</title></head>
+<body>
+<h1>University of Fixture</h1>
+<!-- Tile chooser, rug.nl style. Label and description are block elements inside one button. -->
+<div id="cookie-consent">
+  <button onclick="document.title = 'clicked:' + this.querySelector('strong').textContent">
+    <strong style="display:block">Essential</strong>
+    <span style="display:block">Provides basic functions and uses anonymized cookies.</span>
+  </button>
+  <button onclick="document.title = 'clicked:' + this.querySelector('strong').textContent">
+    <strong style="display:block">Standard</strong>
+    <span style="display:block">Provides optimal operation and uses video cookies, among others.</span>
+  </button>
+  <button onclick="document.title = 'clicked:' + this.querySelector('strong').textContent">
+    <strong style="display:block">Complete</strong>
+    <span style="display:block">Provides personalized content and uses marketing cookies.</span>
+  </button>
+</div>
+<!-- Not consent. "complete" must not match inside a longer label. -->
+<a href="#" onclick="document.title = 'clicked:' + this.textContent; return false">Complete your application</a>
+</body>
+</html>

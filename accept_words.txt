@@ -262,3 +262,6 @@ zustimmen und schließen
 zustimmen und weiter
 Принять
 Я согласен
+accept recommended settings
+accept non-essential cookies
+complete

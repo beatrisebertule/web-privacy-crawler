@@ -258,15 +258,20 @@ def normalize_button_text(text: str) -> str:
 
 def looks_like_a_refusal(normalized_text: str) -> bool:
     """
-    Whole-word check against `REFUSAL_WORDS`.
+    Whole-word check against `REFUSAL_WORDS`. "non" in front of a word cancels it.
 
     example: "accept necessary only" -> True
+    example: "accept non essential cookies" -> False
     example: "accept the essentials" -> False
 
     :param normalized_text: output of `normalize_button_text`
     :rtype: bool
     """
-    return any(refusal_word in normalized_text.split() for refusal_word in REFUSAL_WORDS)
+    words = normalized_text.split()
+    return any(
+        word in REFUSAL_WORDS and (index == 0 or words[index - 1] != "non")
+        for index, word in enumerate(words)
+    )
 
 
 def contains_phrase(normalized_text: str, normalized_phrase: str) -> bool:
@@ -290,8 +295,11 @@ def collect_clickables(page: Page) -> list[tuple[Locator, str]]:
     Visibility is not checked here. That is one round trip per element, and the caller
     only needs it for the few that match.
 
+    Label is the first non-empty line of the element's text. A tile-style button carries its
+    description under the label, and the label is what a visitor reads.
+
     :param page: page after load, frames included
-    :return: `(locator, normalized_text)` pairs in frame and document order, empty text dropped
+    :return: `(locator, normalized_label)` pairs in frame and document order, empty labels dropped
     :rtype: list[tuple[Locator, str]]
     """
     clickables = []
@@ -303,7 +311,8 @@ def collect_clickables(page: Page) -> list[tuple[Locator, str]]:
             " element.innerText || element.value || element.getAttribute('aria-label') || '')"
         )
         for index, text in enumerate(texts):
-            normalized = normalize_button_text(text)
+            first_line = next((line for line in text.splitlines() if line.strip()), "")
+            normalized = normalize_button_text(first_line)
             if normalized:
                 clickables.append((candidates.nth(index), normalized))
     return clickables
@@ -317,9 +326,10 @@ def choose_accept_button(
     Pick the clickable that best matches the accept phrases.
 
     Two passes, longest phrase first in each.
-    Pass 1 takes an exact match.
+    Pass 1 takes an exact match on the label.
     Pass 2 takes a whole-word match, skipping anything `looks_like_a_refusal`.
-    Whole words, not substrings. "ok" is inside "facebook".
+    Single-word phrases like "ok" and "complete" only count in pass 1.
+    "Complete your application" is not consent.
 
     :param clickables: output of `collect_clickables`
     :param accept_words: phrases from `read_accept_words`, any case
@@ -330,12 +340,14 @@ def choose_accept_button(
         {normalize_button_text(phrase) for phrase in accept_words}, key=len, reverse=True
     )
     for phrase in phrases_longest_first:
-        for locator, text in clickables:
-            if text == phrase:
+        for locator, label in clickables:
+            if label == phrase:
                 return locator
     for phrase in phrases_longest_first:
-        for locator, text in clickables:
-            if contains_phrase(text, phrase) and not looks_like_a_refusal(text):
+        if " " not in phrase:
+            continue
+        for locator, label in clickables:
+            if contains_phrase(label, phrase) and not looks_like_a_refusal(label):
                 return locator
     return None
 

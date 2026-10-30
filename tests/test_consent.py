@@ -48,10 +48,13 @@ def test_normalize_button_text(raw_text: str, normalized: str) -> None:
         ("accept necessary only", True),
         ("cookie settings", True),
         ("alleen noodzakelijke cookies", True),
+        ("reject non essential cookies", True),
         ("accept all cookies", False),
         ("ok", False),
         # Whole words only. "essentials" is not "essential".
         ("accept the essentials", False),
+        # "non" cancels the word after it.
+        ("accept non essential cookies", False),
     ],
 )
 def test_looks_like_a_refusal(normalized_text: str, is_refusal: bool) -> None:
@@ -109,6 +112,36 @@ def test_refusal_only_banner_is_left_alone(
 
     assert not clicked
     assert fresh_page.title() == "banner with only refusal buttons"
+
+
+def test_tile_chooser_picks_the_complete_tile(
+    fresh_page: Page, fixture_server_url: str, accept_words: list[str]
+) -> None:
+    fresh_page.goto(f"{fixture_server_url}/banner_tiles.html")
+
+    accept_cookies(fresh_page, accept_words)
+
+    assert fresh_page.title() == "clicked:Complete"
+
+
+def test_accepts_non_essential_over_reject_non_essential(
+    fresh_page: Page, fixture_server_url: str, accept_words: list[str]
+) -> None:
+    fresh_page.goto(f"{fixture_server_url}/banner_non_essential.html")
+
+    accept_cookies(fresh_page, accept_words)
+
+    assert fresh_page.title() == "clicked:Accept Non-Essential Cookies"
+
+
+def test_accepts_recommended_settings_over_reject_all(
+    fresh_page: Page, fixture_server_url: str, accept_words: list[str]
+) -> None:
+    fresh_page.goto(f"{fixture_server_url}/banner_recommended.html")
+
+    accept_cookies(fresh_page, accept_words)
+
+    assert fresh_page.title() == "clicked:Accept recommended settings"
 
 
 def test_clicks_link_styled_as_button(

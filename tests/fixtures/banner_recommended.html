@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>banner with recommended settings wording</title></head>
+<body>
+<h1>University of Fixture</h1>
+<!-- st-andrews.ac.uk style. The accept button contains the refusal word "settings". -->
+<div id="cookie-banner" style="position:fixed;bottom:0;background:#ddd;padding:1em">
+  <button onclick="document.title = 'clicked:' + this.textContent">Accept recommended settings</button>
+  <button onclick="document.title = 'clicked:' + this.textContent">Reject all cookies</button>
+  <a href="#" onclick="document.title = 'clicked:' + this.textContent; return false">Cookie preferences</a>
+</div>
+</body>
+</html>
