@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>infinite page</title></head>
+<body style="margin:0">
+<div id="feed">
+  <div style="height:500px">block 1</div>
+  <div style="height:500px">block 2</div>
+</div>
+<script>
+  // Appends a block whenever the bottom comes into view, so the page never ends.
+  window.addEventListener("scroll", function () {
+    var nearBottom = window.scrollY + window.innerHeight + 600 >= document.documentElement.scrollHeight;
+    if (nearBottom) {
+      var block = document.createElement("div");
+      block.style.height = "500px";
+      block.textContent = "block " + (document.getElementById("feed").children.length + 1);
+      document.getElementById("feed").appendChild(block);
+    }
+  });
+</script>
+</body>
+</html>

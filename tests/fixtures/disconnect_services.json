@@ -1,0 +1,15 @@
+{
+  "license": "Test fixture, same shape as Disconnect's services.json.",
+  "categories": {
+    "Advertising": [
+      {"Blocked Co": {"http://blocked.localhost/": ["blocked.localhost"]}}
+    ],
+    "Analytics": [
+      {"Blocked Co": {"http://blocked.localhost/": ["blocked.localhost"]}},
+      {"Replay Co": {"http://replay.localhost/": ["replay.localhost"], "session-replay": "true"}}
+    ],
+    "Content": [
+      {"Content Co": {"http://content.localhost/": ["content.localhost"]}}
+    ]
+  }
+}

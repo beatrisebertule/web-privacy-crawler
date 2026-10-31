@@ -1,0 +1,12 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>no banner</title></head>
+<body>
+<h1>A page with no consent dialog</h1>
+<p>Nothing to click here.</p>
+<button onclick="document.title = 'clicked:' + this.textContent">Search</button>
+<!-- "ok" is inside "facebook", "accept" inside "acceptance". Neither may count as a match. -->
+<a href="#" onclick="document.title = 'clicked:' + this.textContent; return false">Share on Facebook</a>
+<a href="#" onclick="document.title = 'clicked:' + this.textContent; return false">Acceptance rates</a>
+</body>
+</html>
