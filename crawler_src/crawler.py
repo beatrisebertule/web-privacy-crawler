@@ -19,6 +19,7 @@ import enum
 import json
 import random
 import re
+import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -702,6 +703,11 @@ def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
     accept_words = read_accept_words(ACCEPT_WORDS_PATH)
     print(f"Crawl mode: {crawl_mode.value}")
     print(f"Loaded {len(sites_to_crawl)} websites from {site_list_path}")
+    remaining_count = len(select_sites_to_crawl(sites_to_crawl, crawl_mode.crawled_list_path))
+    print(
+        f"{len(sites_to_crawl) - remaining_count} already done in {crawl_mode.crawled_list_path.name}, "
+        f"{remaining_count} to crawl"
+    )
 
     categories_by_host = None
     if crawl_mode is CrawlMode.BLOCK:
@@ -727,5 +733,8 @@ def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
 
 
 if __name__ == "__main__":
+    # Piped output on Windows is cp1252. A character it can't encode in an error message
+    # must not end the crawl.
+    sys.stdout.reconfigure(errors="backslashreplace")
     command_line_arguments = parse_command_line_arguments()
     run_crawl(command_line_arguments.crawl_mode, command_line_arguments.site_list_path)
