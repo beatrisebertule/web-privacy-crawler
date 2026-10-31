@@ -46,6 +46,29 @@ ru.nl.webm
 `sites.csv` has a header row, then `domain,country,...` per line. Consent button phrases come
 from `accept_words.txt` and are tried in file order.
 
+## Tracker blocking
+
+The `block` crawl blocks a request when its hostname is listed in Disconnect's `services.json`
+under Advertising, Analytics, Social, FingerprintingInvasive or FingerprintingGeneral, or is a
+subdomain of a listed hostname. `stats.g.doubleclick.net` is blocked, `doubleclick.net` is
+listed. `adservice.google.com` is blocked, it is listed itself. `www.google.com` is not.
+
+Matching is on the hostname, not on eTLD+1. Of the 3,555 hostnames in those categories, 278
+are subdomains and their eTLD+1 is not listed: `adservice.google.com` without `google.com`,
+`ads.yahoo.com` without `yahoo.com`. Matching on the request's eTLD+1 would miss those 278.
+
+**NOTE:** One limitation is that a subdomain Disconnect has not listed is not blocked, even when another subdomain
+of the same eTLD+1 is. `a.klaviyo.com` is listed and blocked. `b.klaviyo.com` is not listed
+and gets through. The analysis counts third parties by eTLD+1 (as per assignment requirements) for the
+"domain". A request like that still counts as third party there.
+
+`services.json` in this folder is a copy of Disconnect's list, downloaded 2026-10-30 from
+github.com/disconnectme/disconnect-tracking-protection at commit 5ec90f1b9691. No download
+at crawl time.
+
+A blocked request is still in the HAR, with status -1 and `_failureText`
+`net::ERR_BLOCKED_BY_CLIENT`. The analysis drops it like any request with no response.
+
 ## Resuming
 
 Each finished site is appended to `crawled_<mode>.txt`. A rerun of the same mode skips those.

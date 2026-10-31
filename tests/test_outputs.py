@@ -13,13 +13,25 @@ import pytest
 from playwright.sync_api import Browser, Playwright
 
 # Local package imports
-from conftest import NO_WAITS
-from crawler import ACCEPT_WORDS_PATH, CrawlMode, crawl_sites, read_accept_words, visit_site
+from conftest import FIXTURES_DIRECTORY, NO_WAITS
+from crawler import (
+    ACCEPT_WORDS_PATH,
+    CrawlMode,
+    crawl_sites,
+    load_disconnect_categories,
+    read_accept_words,
+    visit_site,
+)
 
 
 @pytest.fixture(scope="module")
 def accept_words() -> list[str]:
     return read_accept_words(ACCEPT_WORDS_PATH)
+
+
+@pytest.fixture(scope="module")
+def fixture_categories() -> dict[str, frozenset[str]]:
+    return load_disconnect_categories(FIXTURES_DIRECTORY / "disconnect_services.json")
 
 
 def output_names(output_directory: Path) -> set[str]:
@@ -33,6 +45,7 @@ def test_consent_modes_write_four_files(
     playwright_instance: Playwright,
     fixture_server_url: str,
     accept_words: list[str],
+    fixture_categories: dict[str, frozenset[str]],
     tmp_path: Path,
 ) -> None:
     result = visit_site(
@@ -44,6 +57,7 @@ def test_consent_modes_write_four_files(
         tmp_path,
         accept_words,
         NO_WAITS,
+        categories_by_host=fixture_categories,
     )
 
     assert result.succeeded
@@ -250,3 +264,109 @@ def test_crawl_sites_visits_each_site_once_and_records_it(
     assert second_run == []
     assert (tmp_path / "out" / "one.edu.har").is_file()
     assert (tmp_path / "out" / "two.ac.uk.webm").is_file()
+
+
+# *******************************************
+# www retry
+# *******************************************
+
+UNREACHABLE_URL = "http://127.0.0.1:1/"
+
+
+def test_bare_domain_that_fails_is_retried_with_www(
+    headless_browser: Browser,
+    playwright_instance: Playwright,
+    fixture_server_url: str,
+    accept_words: list[str],
+    tmp_path: Path,
+) -> None:
+    # Bare name unreachable, www name serves the fixture page.
+    requested_names = []
+
+    def url_for_site(site_name: str) -> str:
+        requested_names.append(site_name)
+        return f"{fixture_server_url}/banner_button.html" if site_name.startswith("www.") else UNREACHABLE_URL
+
+    crawled_list_path = tmp_path / "crawled.txt"
+    results = crawl_sites(
+        headless_browser,
+        playwright_instance,
+        CrawlMode.DESKTOP,
+        [("fixture.edu", "us")],
+        accept_words,
+        tmp_path / "out",
+        crawled_list_path,
+        NO_WAITS,
+        url_for_site=url_for_site,
+    )
+
+    assert requested_names == ["fixture.edu", "www.fixture.edu"]
+    assert results[0].succeeded
+    assert results[0].first_attempt_error is not None
+    assert results[0].final_url == f"{fixture_server_url}/banner_button.html"
+    assert output_names(tmp_path / "out") == {
+        "fixture.edu.har",
+        "fixture.edu_pre_consent.png",
+        "fixture.edu_post_consent.png",
+        "fixture.edu.webm",
+    }
+    assert crawled_list_path.read_text(encoding="utf-8").strip() == "fixture.edu,us"
+
+
+def test_site_failing_with_and_without_www_is_not_marked(
+    headless_browser: Browser,
+    playwright_instance: Playwright,
+    accept_words: list[str],
+    tmp_path: Path,
+) -> None:
+    requested_names = []
+
+    def url_for_site(site_name: str) -> str:
+        requested_names.append(site_name)
+        return UNREACHABLE_URL
+
+    crawled_list_path = tmp_path / "crawled.txt"
+    results = crawl_sites(
+        headless_browser,
+        playwright_instance,
+        CrawlMode.DESKTOP,
+        [("nowhere.invalid", "nl")],
+        accept_words,
+        tmp_path / "out",
+        crawled_list_path,
+        NO_WAITS,
+        url_for_site=url_for_site,
+    )
+
+    assert requested_names == ["nowhere.invalid", "www.nowhere.invalid"]
+    assert not results[0].succeeded
+    assert not crawled_list_path.exists()
+
+
+def test_site_that_loads_is_not_retried(
+    headless_browser: Browser,
+    playwright_instance: Playwright,
+    fixture_server_url: str,
+    accept_words: list[str],
+    tmp_path: Path,
+) -> None:
+    requested_names = []
+
+    def url_for_site(site_name: str) -> str:
+        requested_names.append(site_name)
+        return f"{fixture_server_url}/no_banner.html"
+
+    results = crawl_sites(
+        headless_browser,
+        playwright_instance,
+        CrawlMode.DESKTOP,
+        [("fixture.edu", "us")],
+        accept_words,
+        tmp_path / "out",
+        tmp_path / "crawled.txt",
+        NO_WAITS,
+        url_for_site=url_for_site,
+    )
+
+    assert requested_names == ["fixture.edu"]
+    assert results[0].first_attempt_error is None

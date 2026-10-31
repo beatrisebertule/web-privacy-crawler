@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>page with third-party pixels</title></head>
+<body>
+<h1>University of Fixture</h1>
+<!-- Chromium sends every *.localhost name to loopback. Fixture server answers all three. -->
+<script>
+  ["ads.blocked.localhost", "cdn.notblocked.localhost", "fonts.content.localhost"].forEach(function (host) {
+    var pixel = document.createElement("img");
+    pixel.src = "http://" + host + ":" + location.port + "/pixel.gif";
+    document.body.appendChild(pixel);
+  });
+</script>
+</body>
+</html>

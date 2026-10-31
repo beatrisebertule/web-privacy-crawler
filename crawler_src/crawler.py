@@ -16,15 +16,25 @@ Usage:
 import argparse
 import csv
 import enum
+import json
 import random
 import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 # Third party imports
-from playwright.sync_api import Browser, Error as PlaywrightError, Locator, Page, Playwright, sync_playwright
+from playwright.sync_api import (
+    Browser,
+    Error as PlaywrightError,
+    Locator,
+    Page,
+    Playwright,
+    Route,
+    sync_playwright,
+)
 
 
 # *******************************************
@@ -36,6 +46,17 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 ACCEPT_WORDS_PATH = REPO_ROOT / "accept_words.txt"
 
 MOBILE_DEVICE_NAME = "Pixel 10"
+
+# Tracker blocking
+# Copy of Disconnect's list sits next to this file. Source and date in README.
+DISCONNECT_SERVICES_PATH = Path(__file__).resolve().parent / "services.json"
+BLOCKED_CATEGORIES = frozenset({
+    "Advertising",
+    "Analytics",
+    "Social",
+    "FingerprintingInvasive",
+    "FingerprintingGeneral",
+})
 
 # Scrolling
 # Half a desktop viewport per step gives lazy-loaded content time to appear.
@@ -102,12 +123,21 @@ class WaitSchedule:
 
 @dataclass
 class VisitResult:
-    """Outcome of one visit. `error` is None on success."""
+    """
+    Outcome of one visit. `error` is None on success.
+
+    `first_attempt_error` is set when the bare domain never loaded and the visit was retried
+    with www. Seen on yale.edu 2026-10-30, one of its five addresses served its host's
+    certificate instead of one for yale.edu.
+    """
 
     site_name: str
     final_url: str | None = None
+    page_loaded: bool = False
     consent_clicked: bool = False
+    blocked_requests: int = 0
     error: str | None = None
+    first_attempt_error: str | None = None
 
     @property
     def succeeded(self) -> bool:
@@ -417,6 +447,63 @@ def scroll_down(
 # One visit
 # *******************************************
 
+def load_disconnect_categories(services_path: Path) -> dict[str, frozenset[str]]:
+    """
+    Read Disconnect's `services.json` into hostname to categories.
+
+    Entity entries also hold flags like `"session-replay": "true"`. Only list values are hostnames.
+
+    example: "doubleclick.net" -> frozenset({"Advertising"})
+
+    :param services_path: Disconnect's `services.json`
+    :return: Every listed hostname with every category it is listed under.
+    :rtype: dict[str, frozenset[str]]
+    """
+    with open(services_path, encoding="utf-8") as services_file:
+        services = json.load(services_file)
+    categories_by_host: dict[str, set[str]] = {}
+    for category, entities in services["categories"].items():
+        for entity in entities:
+            for properties in entity.values():
+                for hostnames in properties.values():
+                    if not isinstance(hostnames, list):
+                        continue
+                    for hostname in hostnames:
+                        categories_by_host.setdefault(hostname, set()).add(category)
+    return {hostname: frozenset(categories) for hostname, categories in categories_by_host.items()}
+
+
+def listed_categories(hostname: str, categories_by_host: dict[str, frozenset[str]]) -> frozenset[str]:
+    """
+    Categories of a hostname and of every listed parent domain of it.
+
+    Matches whole labels only. "notdoubleclick.net" does not match "doubleclick.net".
+
+    example: "stats.g.doubleclick.net" -> categories of "doubleclick.net"
+
+    :param hostname: request hostname, no port
+    :param categories_by_host: output of `load_disconnect_categories`
+    :return: Union of the categories found, empty if none.
+    :rtype: frozenset[str]
+    """
+    labels = hostname.lower().split(".")
+    found: set[str] = set()
+    for first_label in range(len(labels)):
+        found |= categories_by_host.get(".".join(labels[first_label:]), frozenset())
+    return frozenset(found)
+
+
+def is_blocked(hostname: str, categories_by_host: dict[str, frozenset[str]]) -> bool:
+    """
+    Whether the block crawl drops requests to this hostname.
+
+    :param hostname: request hostname, no port
+    :param categories_by_host: output of `load_disconnect_categories`
+    :rtype: bool
+    """
+    return bool(listed_categories(hostname, categories_by_host) & BLOCKED_CATEGORIES)
+
+
 def build_context_options(
     playwright: Playwright,
     crawl_mode: CrawlMode,
@@ -456,6 +543,7 @@ def visit_site(
     output_directory: Path,
     accept_words: list[str],
     waits: WaitSchedule = WaitSchedule(),
+    categories_by_host: dict[str, frozenset[str]] | None = None,
 ) -> VisitResult:
     """
     Visit one URL in a fresh context. Writes HAR, screenshots and video.
@@ -463,6 +551,7 @@ def visit_site(
     Output files for `site_name` "ru.nl":
     `ru.nl.har`, `ru.nl_pre_consent.png`, `ru.nl_post_consent.png`, `ru.nl.webm`
     Ignore mode writes no post-consent screenshot.
+    Block mode aborts requests to hosts `is_blocked` says yes to. They get no response.
 
     :param browser: launched browser, shared across visits
     :param playwright: running Playwright, for the device list
@@ -472,20 +561,36 @@ def visit_site(
     :param output_directory: created if missing
     :param accept_words: phrases from `read_accept_words`
     :param waits: sleeps between steps, assignment defaults
+    :param categories_by_host: output of `load_disconnect_categories`. Required in block mode,
+        ignored in the others.
     :return: What happened. `error` is set and the rest best effort if the visit threw.
     :rtype: VisitResult
     """
+    # Programming error, not a site failure. Raised before anything is written.
+    if crawl_mode is CrawlMode.BLOCK and categories_by_host is None:
+        raise ValueError("block mode needs categories_by_host, got None")
+
     output_directory.mkdir(parents=True, exist_ok=True)
     result = VisitResult(site_name=site_name)
 
-    # TODO: block Disconnect-listed domains in CrawlMode.BLOCK
     context = browser.new_context(
         **build_context_options(playwright, crawl_mode, output_directory, site_name)
     )
+    if crawl_mode is CrawlMode.BLOCK:
+        def abort_listed_hosts(route: Route) -> None:
+            hostname = urlsplit(route.request.url).hostname or ""
+            if is_blocked(hostname, categories_by_host):
+                result.blocked_requests += 1
+                route.abort("blockedbyclient")
+            else:
+                route.continue_()
+
+        context.route("**/*", abort_listed_hosts)
     page = context.new_page()
     try:
         print(f"Crawling {site_name}...")
         page.goto(url)
+        result.page_loaded = True
         time.sleep(waits.after_page_load)
         page.screenshot(path=str(output_directory / f"{site_name}_pre_consent.png"))
 
@@ -506,7 +611,8 @@ def visit_site(
         page.close()
         context.close()
         if video_path:
-            Path(video_path).rename(output_directory / f"{site_name}.webm")
+            # Overwrites a failed earlier attempt's video. Plain rename fails on Windows then.
+            Path(video_path).replace(output_directory / f"{site_name}.webm")
     return result
 
 
@@ -528,6 +634,7 @@ def crawl_sites(
     crawled_list_path: Path,
     waits: WaitSchedule = WaitSchedule(),
     url_for_site: Callable[[str], str] = homepage_url,
+    categories_by_host: dict[str, frozenset[str]] | None = None,
 ) -> list[VisitResult]:
     """
     Visit every site not yet in the resume list, one at a time, and record each success as done.
@@ -541,6 +648,7 @@ def crawl_sites(
     :param crawled_list_path: resume CSV for this mode
     :param waits: sleeps between steps, assignment defaults
     :param url_for_site: site name to URL. Tests point it at localhost.
+    :param categories_by_host: output of `load_disconnect_categories`, required in block mode
     :return: One result per site visited this run.
     :rtype: list[VisitResult]
     """
@@ -555,7 +663,24 @@ def crawl_sites(
             output_directory,
             accept_words,
             waits,
+            categories_by_host=categories_by_host,
         )
+        # Bare domain that never loaded gets one retry with www. Files keep the list's name.
+        if not result.page_loaded and not website_domain.startswith("www."):
+            first_attempt_error = result.error
+            print(f"{website_domain} did not load, retrying as www.{website_domain}")
+            result = visit_site(
+                browser,
+                playwright,
+                crawl_mode,
+                website_domain,
+                url_for_site(f"www.{website_domain}"),
+                output_directory,
+                accept_words,
+                waits,
+                categories_by_host=categories_by_host,
+            )
+            result.first_attempt_error = first_attempt_error
         # Failed visits stay out of resume list, next run retries.
         if result.succeeded:
             add_to_crawled_list(crawled_list_path, website_domain, country_code)
@@ -578,6 +703,14 @@ def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
     print(f"Crawl mode: {crawl_mode.value}")
     print(f"Loaded {len(sites_to_crawl)} websites from {site_list_path}")
 
+    categories_by_host = None
+    if crawl_mode is CrawlMode.BLOCK:
+        categories_by_host = load_disconnect_categories(DISCONNECT_SERVICES_PATH)
+        blocked_host_count = sum(
+            1 for categories in categories_by_host.values() if categories & BLOCKED_CATEGORIES
+        )
+        print(f"Blocking {blocked_host_count} hostnames from {DISCONNECT_SERVICES_PATH.name}")
+
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=False)
         crawl_sites(
@@ -588,6 +721,7 @@ def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
             accept_words,
             crawl_mode.output_directory,
             crawl_mode.crawled_list_path,
+            categories_by_host=categories_by_host,
         )
         browser.close()
 

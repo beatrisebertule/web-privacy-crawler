@@ -265,3 +265,6 @@ zustimmen und weiter
 accept recommended settings
 accept non-essential cookies
 complete
+accepteer alle cookies
+alle cookies toestaan
+accepteer alles
