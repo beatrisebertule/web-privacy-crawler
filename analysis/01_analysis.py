@@ -15,7 +15,7 @@ from tld import get_fld
 
 ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
 ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
-OUTDIR = "out"
+OUTDIR = "results"
 
 # the four crawl modes, in X-axis order (these are the <mode> in crawler_data_<mode>)
 MODES = ["desktop", "mobile", "block", "ignore"]
@@ -126,6 +126,11 @@ def analyse_har(har, first_party, dmap):
         if not dom:                           # skip unparsable hosts
             continue
         
+        # sanity check
+        # print(f"fp: {fp}")
+        # print(f"dom: {dom}")
+        # print(f"frp != dom: {dom != fp}")
+        
         if dom != fp:                         # this request is THIRD PARTY
             n_tp += 1                         # (b) count the third-party request
             tp_domains.add(dom)               # (c) remember the distinct domain
@@ -180,7 +185,7 @@ def boxplot(ax, data_by_mode, title):
     for patch, col in zip(bp["boxes"], colors):
         patch.set_facecolor(col)
         patch.set_alpha(0.65)
-    ax.set_title(title, fontsize=11)
+    # ax.set_title(title, fontsize=11)
     ax.set_ylabel("count per website")
     ax.grid(axis="y", linestyle=":", alpha=0.5)
     ns = [len(data_by_mode.get(m, [])) for m in MODES]
@@ -226,6 +231,7 @@ if __name__ == "__main__":
             all_rows.append({"crawl": m, **res})
         jpath = os.path.join(OUTDIR, f"metrics_{m}.json")
         
+        os.makedirs(OUTDIR, exist_ok=True)
         with open(jpath, "w", encoding="utf-8") as jf:      # write results to a json file
             json.dump(records, jf, indent=2)
         print(f"  wrote {jpath}")

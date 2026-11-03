@@ -3,6 +3,7 @@
 crawl_data_*/
 crawled_*.txt
 crawled_list.txt
+results/*
 
 # Python
 __pycache__/

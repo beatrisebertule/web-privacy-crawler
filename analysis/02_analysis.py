@@ -7,8 +7,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-IN_CSV = "./out/per_website_metrics.csv"
-OUTDIR = "out"
+IN_CSV = "./results/per_website_metrics.csv"
+OUTDIR = "results"
 MODES = ["desktop", "mobile", "block", "ignore"]           # column order
 LABELS = {"desktop": "Desktop", "mobile": "Mobile",
           "block": "Block", "ignore": "Ignore"}
