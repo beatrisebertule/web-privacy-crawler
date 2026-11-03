@@ -1,0 +1,5 @@
+"Metric (Mobile, n=30)",Min,Median,Max
+Number of requests per website,28,103.5,285
+Number of third-party requests per website,8,58.5,210
+Number of distinct third-party domains per website,2,15,35
+Number of distinct third-party entities per website,2,8,19

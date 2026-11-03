@@ -9,8 +9,8 @@
   {
     "requests": 124,
     "tp_requests": 73,
-    "tp_domains": 24,
-    "tp_entities": 14,
+    "tp_domains": 25,
+    "tp_entities": 15,
     "website": "birmingham.ac.uk"
   },
   {
@@ -23,8 +23,8 @@
   {
     "requests": 115,
     "tp_requests": 64,
-    "tp_domains": 14,
-    "tp_entities": 5,
+    "tp_domains": 15,
+    "tp_entities": 7,
     "website": "cam.ac.uk"
   },
   {
@@ -52,7 +52,7 @@
     "requests": 106,
     "tp_requests": 67,
     "tp_domains": 26,
-    "tp_entities": 15,
+    "tp_entities": 16,
     "website": "kcl.ac.uk"
   },
   {
@@ -79,8 +79,8 @@
   {
     "requests": 269,
     "tp_requests": 226,
-    "tp_domains": 33,
-    "tp_entities": 16,
+    "tp_domains": 35,
+    "tp_entities": 19,
     "website": "manchester.ac.uk"
   },
   {
@@ -108,7 +108,7 @@
     "requests": 94,
     "tp_requests": 59,
     "tp_domains": 16,
-    "tp_entities": 7,
+    "tp_entities": 8,
     "website": "st-andrews.ac.uk"
   },
   {

@@ -192,18 +192,9 @@ if __name__ == "__main__":
     
     root = sys.argv[1] if len(sys.argv) > 1 else ROOT
     entities = sys.argv[2] if len(sys.argv) > 2 else ENTITIES
-    if not os.path.exists(entities):
-        sys.exit(f"ERROR: entities file not found: '{entities}'. "
-                 f"Put entities.json here or pass it as the 2nd argument.")
-
+ 
     # create a list of directories that contain har files per mode
     dirs = {m: find_mode_dir(root, m) for m in MODES}
-    missing = [m for m in MODES if not dirs[m]]
-    if missing:
-        sys.exit(f"ERROR: no folder found for mode(s): {', '.join(missing)} under "
-                 f"'{root}'. Expected crawler_data_<mode>/ (e.g. crawler_data_accept/). "
-                 f"Edit MODES at the top if your modes are named differently.")
-
 
     dmap = load_entity_map(entities)
     print(f"Loaded {len(dmap)} domain->entity mappings.")
@@ -216,7 +207,7 @@ if __name__ == "__main__":
         files = har_files(dirs[m])
         print(f"\nProcessing {m}...  ({len(files)} websites in {dirs[m]})")
         records = []
-        # loop over all har files within a mode directory
+        # loop over all har files within a directory of a specific mode
         for path in files:
             try:
                 with open(path, "r", encoding="utf-8", errors="replace") as f:
@@ -225,19 +216,17 @@ if __name__ == "__main__":
                 print(f"  ! skip {os.path.basename(path)}: {e}", file=sys.stderr)
                 continue
             
-            # return a domain name (strip directoru path away)
-            domain = domain_from_filename(path, m)
-            # analyse each har file
-            res = analyse_har(har, domain, dmap)
+            domain = domain_from_filename(path, m)          # return a domain name (strip directory path away)
+            res = analyse_har(har, domain, dmap)            # analyse each har file
             res["website"] = domain
             records.append(res)
-            # for each metric
+
             for k in METRICS:
                 per_mode[k][m].append(res[k])
             all_rows.append({"crawl": m, **res})
         jpath = os.path.join(OUTDIR, f"metrics_{m}.json")
-        # write results to a json file
-        with open(jpath, "w", encoding="utf-8") as jf:
+        
+        with open(jpath, "w", encoding="utf-8") as jf:      # write results to a json file
             json.dump(records, jf, indent=2)
         print(f"  wrote {jpath}")
 

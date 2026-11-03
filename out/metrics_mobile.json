@@ -3,14 +3,14 @@
     "requests": 54,
     "tp_requests": 12,
     "tp_domains": 9,
-    "tp_entities": 3,
+    "tp_entities": 4,
     "website": "berkeley.edu"
   },
   {
     "requests": 124,
     "tp_requests": 73,
-    "tp_domains": 24,
-    "tp_entities": 14,
+    "tp_domains": 25,
+    "tp_entities": 15,
     "website": "birmingham.ac.uk"
   },
   {
@@ -23,8 +23,8 @@
   {
     "requests": 118,
     "tp_requests": 67,
-    "tp_domains": 14,
-    "tp_entities": 5,
+    "tp_domains": 15,
+    "tp_entities": 7,
     "website": "cam.ac.uk"
   },
   {
@@ -38,7 +38,7 @@
     "requests": 167,
     "tp_requests": 166,
     "tp_domains": 23,
-    "tp_entities": 13,
+    "tp_entities": 14,
     "website": "glasgow.ac.uk"
   },
   {
@@ -52,7 +52,7 @@
     "requests": 114,
     "tp_requests": 75,
     "tp_domains": 26,
-    "tp_entities": 15,
+    "tp_entities": 16,
     "website": "kcl.ac.uk"
   },
   {
@@ -66,7 +66,7 @@
     "requests": 170,
     "tp_requests": 135,
     "tp_domains": 28,
-    "tp_entities": 16,
+    "tp_entities": 18,
     "website": "lse.ac.uk"
   },
   {
@@ -79,8 +79,8 @@
   {
     "requests": 249,
     "tp_requests": 210,
-    "tp_domains": 33,
-    "tp_entities": 16,
+    "tp_domains": 35,
+    "tp_entities": 19,
     "website": "manchester.ac.uk"
   },
   {
@@ -94,14 +94,14 @@
     "requests": 88,
     "tp_requests": 33,
     "tp_domains": 10,
-    "tp_entities": 6,
+    "tp_entities": 7,
     "website": "northwestern.edu"
   },
   {
     "requests": 160,
     "tp_requests": 116,
     "tp_domains": 28,
-    "tp_entities": 18,
+    "tp_entities": 19,
     "website": "nottingham.ac.uk"
   },
   {
@@ -122,14 +122,14 @@
     "requests": 89,
     "tp_requests": 58,
     "tp_domains": 16,
-    "tp_entities": 7,
+    "tp_entities": 8,
     "website": "st-andrews.ac.uk"
   },
   {
     "requests": 129,
     "tp_requests": 65,
     "tp_domains": 10,
-    "tp_entities": 4,
+    "tp_entities": 5,
     "website": "stanford.edu"
   },
   {
@@ -149,15 +149,15 @@
   {
     "requests": 125,
     "tp_requests": 80,
-    "tp_domains": 15,
-    "tp_entities": 11,
+    "tp_domains": 16,
+    "tp_entities": 12,
     "website": "ucla.edu"
   },
   {
     "requests": 62,
     "tp_requests": 24,
     "tp_domains": 6,
-    "tp_entities": 3,
+    "tp_entities": 4,
     "website": "upenn.edu"
   },
   {
@@ -185,14 +185,14 @@
     "requests": 116,
     "tp_requests": 92,
     "tp_domains": 15,
-    "tp_entities": 9,
+    "tp_entities": 10,
     "website": "vu.nl"
   },
   {
     "requests": 191,
     "tp_requests": 115,
-    "tp_domains": 16,
-    "tp_entities": 10,
+    "tp_domains": 17,
+    "tp_entities": 11,
     "website": "warwick.ac.uk"
   },
   {
@@ -206,7 +206,7 @@
     "requests": 69,
     "tp_requests": 23,
     "tp_domains": 8,
-    "tp_entities": 5,
+    "tp_entities": 6,
     "website": "yale.edu"
   }
 ]

@@ -1,0 +1,5 @@
+"Metric (Desktop, n=25)",Min,Median,Max
+Number of requests per website,0,0,293
+Number of third-party requests per website,0,0,226
+Number of distinct third-party domains per website,0,0,35
+Number of distinct third-party entities per website,0,0,19

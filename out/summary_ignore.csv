@@ -1,0 +1,5 @@
+"Metric (Ignore, n=30)",Min,Median,Max
+Number of requests per website,28,63.5,154
+Number of third-party requests per website,5,21,98
+Number of distinct third-party domains per website,1,6,16
+Number of distinct third-party entities per website,1,5,12

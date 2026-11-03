@@ -3,7 +3,7 @@
     "requests": 48,
     "tp_requests": 7,
     "tp_domains": 5,
-    "tp_entities": 2,
+    "tp_entities": 3,
     "website": "berkeley.edu"
   },
   {
@@ -23,8 +23,8 @@
   {
     "requests": 83,
     "tp_requests": 37,
-    "tp_domains": 10,
-    "tp_entities": 4,
+    "tp_domains": 11,
+    "tp_entities": 6,
     "website": "cam.ac.uk"
   },
   {
@@ -38,7 +38,7 @@
     "requests": 106,
     "tp_requests": 105,
     "tp_domains": 8,
-    "tp_entities": 5,
+    "tp_entities": 6,
     "website": "glasgow.ac.uk"
   },
   {
@@ -66,7 +66,7 @@
     "requests": 89,
     "tp_requests": 49,
     "tp_domains": 9,
-    "tp_entities": 6,
+    "tp_entities": 7,
     "website": "lse.ac.uk"
   },
   {
@@ -79,8 +79,8 @@
   {
     "requests": 168,
     "tp_requests": 125,
-    "tp_domains": 12,
-    "tp_entities": 4,
+    "tp_domains": 13,
+    "tp_entities": 6,
     "website": "manchester.ac.uk"
   },
   {
@@ -94,14 +94,14 @@
     "requests": 79,
     "tp_requests": 23,
     "tp_domains": 7,
-    "tp_entities": 6,
+    "tp_entities": 7,
     "website": "northwestern.edu"
   },
   {
     "requests": 90,
     "tp_requests": 46,
     "tp_domains": 9,
-    "tp_entities": 7,
+    "tp_entities": 8,
     "website": "nottingham.ac.uk"
   },
   {
@@ -122,14 +122,14 @@
     "requests": 60,
     "tp_requests": 25,
     "tp_domains": 8,
-    "tp_entities": 5,
+    "tp_entities": 6,
     "website": "st-andrews.ac.uk"
   },
   {
     "requests": 146,
     "tp_requests": 97,
     "tp_domains": 7,
-    "tp_entities": 3,
+    "tp_entities": 4,
     "website": "stanford.edu"
   },
   {
@@ -149,15 +149,15 @@
   {
     "requests": 117,
     "tp_requests": 74,
-    "tp_domains": 13,
-    "tp_entities": 10,
+    "tp_domains": 14,
+    "tp_entities": 11,
     "website": "ucla.edu"
   },
   {
     "requests": 104,
     "tp_requests": 19,
     "tp_domains": 5,
-    "tp_entities": 3,
+    "tp_entities": 4,
     "website": "upenn.edu"
   },
   {
@@ -191,8 +191,8 @@
   {
     "requests": 161,
     "tp_requests": 85,
-    "tp_domains": 8,
-    "tp_entities": 7,
+    "tp_domains": 9,
+    "tp_entities": 8,
     "website": "warwick.ac.uk"
   },
   {
