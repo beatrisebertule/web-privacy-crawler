@@ -173,7 +173,7 @@ def boxplot(ax, data_by_mode, title):
                     patch_artist=True,
                     medianprops=dict(color="#b2182b", linewidth=1.8),
                     flierprops=dict(marker="x", markersize=3, markerfacecolor="none",
-                                    markeredgecolor="#888", alpha=0.6),
+                                    markeredgecolor="#888", alpha=0.8),
                     whiskerprops=dict(color="#555"), capprops=dict(color="#555"),
                     boxprops=dict(edgecolor="#555"))
     colors = ["#4e79a7", "#59a14f", "#e15759", "#f2a94e"]
