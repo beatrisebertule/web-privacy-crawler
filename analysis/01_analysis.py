@@ -13,6 +13,8 @@ import numpy as np
 # import tldextract
 from tld import get_fld
 
+from final_page import final_page_host
+
 ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
 ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
 OUTDIR = "results"
@@ -222,7 +224,7 @@ if __name__ == "__main__":
                 continue
             
             domain = domain_from_filename(path, m)          # return a domain name (strip directory path away)
-            res = analyse_har(har, domain, dmap)            # analyse each har file
+            res = analyse_har(har, final_page_host(har, domain), dmap)   # first party is the page after redirects
             res["website"] = domain
             records.append(res)
 

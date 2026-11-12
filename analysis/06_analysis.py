@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import tldextract
 from tld import get_fld
 
+from final_page import final_page_host
+
 DIR_DESKTOP = "./crawl_data_desktop"
 DIR_MOBILE = "./crawl_data_mobile"
 CRAWL_DESKTOP = "desktop"       # left column
@@ -59,15 +61,16 @@ def collect_tp_domains(folder):
         
         base = os.path.basename(path)
         website = base[:-4] if base.lower().endswith(".har") else base # strip away .har
-        fp = fld(website) # return extended TLD
-        
+
         try:
             with open(path, "r", encoding="utf-8", errors="replace") as f:
                 har = json.load(f)
         except (ValueError, OSError) as e:
             print(f"  ! skip {base}: {e}", file=sys.stderr)
             continue
-        
+
+        fp = fld(final_page_host(har, website)) # first party is the page after redirects
+
         entries = har.get("log")
         for entry in (entries or {}).get("entries") or []:
             

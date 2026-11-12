@@ -8,6 +8,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from tld import get_fld
 
+from final_page import final_page_host
+
 ROOT = Path(__file__).resolve().parent.parent
 OUTDIR = ROOT / "results"
 TRANCO_PATH = ROOT / "tranco.csv" # Tranco list, one "rank,domain" per line
@@ -15,10 +17,13 @@ TLD_COUNTRY = {"edu": "US", "nl": "NL", "uk": "UK"} # top-level domain -> countr
 
 def third_party_domains(har):
     """Returns the set of third party domains (eTLD+1) a page sent requests to"""
-    first_party = get_fld(har.stem.split("_")[0], fix_protocol=True, fail_silently=True)
-    
+    website = har.stem.split("_")[0]
+
     with open(har, encoding="utf-8") as f:
         har = json.load(f)
+
+    # First party is the page after redirects, not the file name
+    first_party = get_fld(final_page_host(har, website), fix_protocol=True, fail_silently=True)
 
     domains = set()
 
