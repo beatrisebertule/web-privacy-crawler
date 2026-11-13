@@ -10,7 +10,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-# import tldextract
 from tld import get_fld
 
 ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
@@ -125,11 +124,6 @@ def analyse_har(har, first_party, dmap):
         dom = fld(host_of(url))
         if not dom:                           # skip unparsable hosts
             continue
-        
-        # sanity check
-        # print(f"fp: {fp}")
-        # print(f"dom: {dom}")
-        # print(f"frp != dom: {dom != fp}")
         
         if dom != fp:                         # this request is THIRD PARTY
             n_tp += 1                         # (b) count the third-party request

@@ -5,18 +5,13 @@ import os
 import sys
 from collections import defaultdict
 from urllib.parse import urlsplit
-import pprint
-
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import tldextract
 from tld import get_fld
+import pprint
 
 DIR_DESKTOP = "./crawl_data_desktop"
 DIR_MOBILE = "./crawl_data_mobile"
-CRAWL_DESKTOP = "desktop"       # left column
-CRAWL_MOBILE = "mobile"         # right column
+CRAWL_DESKTOP = "desktop"
+CRAWL_MOBILE = "mobile"
 OUTDIR = "results"
 
 
