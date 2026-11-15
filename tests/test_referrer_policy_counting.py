@@ -13,6 +13,7 @@ import pytest
 
 # Local package imports
 from har_builders import make_entry, make_har, write_har
+from piped_main import run_main_piped
 
 # Import statement can't load a module name starting with a digit.
 q11 = importlib.import_module("11_analysis")
@@ -74,6 +75,17 @@ def test_first_party_redirect_response_counts() -> None:
         "ru.nl",
         make_entry("https://ru.nl/", status=301, redirect="https://www.ru.nl/", headers=policy("no-referrer")),
         make_entry("https://www.ru.nl/", headers=policy("origin")),
+    )
+    assert site.no_referrer
+    assert not site.no_referrer_on_final_page
+
+
+def test_refetch_of_final_page_url_is_not_the_final_page() -> None:
+    # Only the first request to the final URL loads the page.
+    site = observe(
+        "ru.nl",
+        make_entry("https://www.ru.nl/", headers=policy("origin")),
+        make_entry("https://www.ru.nl/", headers=policy("no-referrer")),
     )
     assert site.no_referrer
     assert not site.no_referrer_on_final_page
@@ -270,10 +282,10 @@ def test_run_end_to_end_on_tmp_crawl(capsys: pytest.CaptureFixture[str], tmp_pat
         "mit.edu,us,no,no,origin,no",
         "ru.nl,nl,yes,yes,no-referrer,no",
     ]
-    output = capsys.readouterr().out
-    assert "WARNING: not on site list, still counted: example.org" in output
-    assert any(line.split() == ["example.org", "NA", "yes"] for line in output.splitlines())
-    assert "Counted: 2 websites" in output
+    lines = capsys.readouterr().out.splitlines()
+    assert "WARNING: not on site list, still counted: example.org" in lines
+    assert any(line.split() == ["example.org", "NA", "yes"] for line in lines)
+    assert "Counted: 2 websites" in lines
 
 
 def test_run_stops_without_crawl_folder(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
@@ -340,6 +352,19 @@ def test_main_reads_country_from_site_list(
     output = capsys.readouterr().out
     assert "WARNING" not in output
     assert any(line.split() == ["cam.ac.uk", "UK", "yes"] for line in output.splitlines())
+
+
+def test_main_prints_non_ascii_header_with_stdout_piped(tmp_path: Path) -> None:
+    crawl = tmp_path / "crawl_data_desktop"
+    crawl.mkdir()
+    write_har(crawl, "ru.nl", make_har(make_entry("https://www.ru.nl/", headers=policy("政策"))))
+    site_list = tmp_path / "sites.csv"
+    site_list.write_bytes(b"domain,country,university\nru.nl,nl,Radboud\n")
+
+    result = run_main_piped("11_analysis", crawl, tmp_path / "results", site_list)
+
+    assert result.returncode == 0, result.stderr.decode("utf-8", "replace")
+    assert "ru.nl: '政策'" in result.stdout.decode("utf-8")
 
 
 def test_main_exits_1_without_crawl_data(

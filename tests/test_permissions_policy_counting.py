@@ -14,6 +14,7 @@ import pytest
 
 # Local package imports
 from har_builders import make_entry, make_har, write_har
+from piped_main import run_main_piped
 
 # Import statement can't load a module name starting with a digit.
 q10 = importlib.import_module("10_analysis")
@@ -413,6 +414,19 @@ def test_main_runs_on_its_folders_and_exits_with_run_code(
     assert exit_info.value.code == 0
     assert (tmp_path / "results" / q10.CSV_NAME).read_text(encoding="utf-8").splitlines()[1] == "1,camera,1,1"
     assert "WARNING" not in capsys.readouterr().out
+
+
+def test_main_prints_non_ascii_header_with_stdout_piped(tmp_path: Path) -> None:
+    crawl = tmp_path / "crawl_data_mobile"
+    crawl.mkdir()
+    write_har(crawl, "ru.nl", make_har(make_entry("https://www.ru.nl/", headers=policy("相机=()"))))
+    site_list = tmp_path / "sites.csv"
+    site_list.write_bytes(b"domain,country,university\nru.nl,nl,Radboud\n")
+
+    result = run_main_piped("10_analysis", crawl, tmp_path / "results", site_list)
+
+    assert result.returncode == 0, result.stderr.decode("utf-8", "replace")
+    assert "相机=()" in result.stdout.decode("utf-8")
 
 
 def test_main_exits_1_without_crawl_data(
