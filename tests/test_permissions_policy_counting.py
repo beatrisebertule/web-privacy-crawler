@@ -284,15 +284,6 @@ def test_report_lists_sites_in_each_section(capsys: pytest.CaptureFixture[str], 
 # *******************************************
 
 
-def test_read_site_list_gives_domains_without_header(tmp_path: Path) -> None:
-    site_list = tmp_path / "sites.csv"
-    site_list.write_text("domain,country,university\nru.nl,nl,Radboud\n vu.nl ,nl,VU\n", encoding="utf-8")
-    assert q10.read_site_list(site_list) == frozenset({"ru.nl", "vu.nl"})
-
-    site_list.write_text("domain,country,university\n", encoding="utf-8")
-    assert q10.read_site_list(site_list) == frozenset()
-
-
 def test_run_end_to_end_on_tmp_crawl(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     crawl = tmp_path / "crawl_data_mobile"
     crawl.mkdir()

@@ -25,6 +25,11 @@ from first_party_responses import (
     header_values,
     iter_crawl_hars,
 )
+from report_text import counted
+
+# crawler_src is not a package. Path entry instead of an install.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "crawler_src"))
+from crawler import read_site_list  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CRAWL_DIRECTORY = ROOT / "crawl_data_mobile"
@@ -255,15 +260,6 @@ def write_ranking_csv(ranking: list[FeatureRank], csv_path: Path) -> None:
             writer.writerow([position, rank.feature, rank.websites, rank.websites_on_final_page])
 
 
-def counted(count: int, noun: str) -> str:
-    """
-    Plural or singular based on count
-
-    example: (1, "website") -> "1 website", (3, "website") -> "3 websites"
-    """
-    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
-
-
 def print_report(
     observations: list[SiteObservation],
     ranking: list[FeatureRank],
@@ -341,17 +337,6 @@ def print_report(
 # *******************************************
 
 
-def read_site_list(site_list_path: Path) -> frozenset[str]:
-    """
-    Read domains from a site-list CSV. (The crawler names HAR files after them)
-
-    :param site_list_path: CSV with a `domain` column
-    :return: Domains such as "ru.nl".
-    """
-    with open(site_list_path, newline="", encoding="utf-8") as site_list_file:
-        return frozenset(row["domain"].strip() for row in csv.DictReader(site_list_file))
-
-
 def run(crawl_directory: Path, results_directory: Path, site_list: frozenset[str]) -> int:
     """
     Run Q10 on one crawl folder.
@@ -386,7 +371,11 @@ def run(crawl_directory: Path, results_directory: Path, site_list: frozenset[str
 def main() -> None:
     # Piped stdout on Windows defaults to cp1252.
     sys.stdout.reconfigure(encoding="utf-8")
-    sys.exit(run(CRAWL_DIRECTORY, RESULTS_DIRECTORY, read_site_list(SITE_LIST_PATH)))
+    site_list = frozenset(
+        domain for domain, _country
+        in read_site_list(SITE_LIST_PATH)
+    )
+    sys.exit(run(CRAWL_DIRECTORY, RESULTS_DIRECTORY, site_list))
 
 
 if __name__ == "__main__":
