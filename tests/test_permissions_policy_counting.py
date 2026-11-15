@@ -203,7 +203,7 @@ def test_csv_has_lf_line_endings_and_full_ranking(tmp_path: Path) -> None:
     csv_path = tmp_path / "results" / "q10.csv"
     q10.write_ranking_csv(ranking, csv_path)
 
-    # Bytes, not text. (Text mode would turn "\r\n" into "\n" and hide it)
+    # Read bytes, since text mode turns "\r\n" into "\n" and hides it.
     data = csv_path.read_bytes()
     assert b"\r" not in data
     assert data.decode("utf-8").splitlines() == [

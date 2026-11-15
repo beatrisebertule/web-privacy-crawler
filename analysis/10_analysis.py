@@ -1,7 +1,7 @@
 """
 Analysis-Q10: five Permissions-Policy features disabled on most websites, mobile crawl.
 
-Only first-party responses count. (First party is resulting page after redirects)
+Only first-party responses count (first party is resulting page after redirects).
 Feature counts as disabled if its allowlist is empty, `camera=()`.
 Each website counts once per feature.
 """
@@ -82,7 +82,7 @@ def parse_permissions_policy(header_values: list[str]) -> PolicyFeatures:
     disabled = set()
     named_not_disabled = set()
     for feature, (value, _parameters) in members.items():
-        # Empty allowlist means no origin gets the feature. (Package returns it as an empty list)
+        # Empty allowlist means no origin gets the feature (package returns it as an empty list).
         if isinstance(value, list) and not value:
             disabled.add(feature)
         else:
@@ -130,7 +130,7 @@ class FeatureRank:
 
 @dataclass(frozen=True)
 class TieReport:
-    """Tie at the five-row cutoff. (Used in the caption)"""
+    """Caption details for a tie at the five-row cutoff."""
 
     website_count: int
     tied_total: int
@@ -165,13 +165,13 @@ def observe_site(website: str, har: dict) -> SiteObservation:
         try:
             features = parse_permissions_policy(policy_values)
         except MalformedPermissionsPolicy as malformed:
-            # Browsers drop the whole header. (None of its features count)
+            # Browsers drop the whole header.
             observation.skipped_headers.append(str(malformed))
             continue
 
         observation.disabled |= features.disabled
         named_not_disabled |= features.named_not_disabled
-        # Identity, not equality. (Two entries can hold the same contents)
+        # Identity, not equality (two entries can hold the same contents).
         if entry is final_page_response:
             observation.disabled_on_final_page |= features.disabled
 
@@ -269,7 +269,7 @@ def print_report(
     """
     Print the top five and caption details.
 
-    Every section prints, with "none" if empty. (A missing line would look like a clean result)
+    Every section prints "none" if empty, since a missing line would look like a clean result.
 
     :param observations: one per website
     :param ranking: output of `rank_features`
@@ -344,7 +344,7 @@ def run(crawl_directory: Path, results_directory: Path, site_list: frozenset[str
     :param crawl_directory: folder of `.har` files
     :param results_directory: where the CSV goes
     :param site_list: domains the crawl should hold, a mismatch prints a warning
-    :return: 0 on success, 1 if crawl data can't be analyzed. (No CSV is written then)
+    :return: 0 on success, 1 if crawl data can't be analyzed and no CSV is written
     """
     observations = []
     try:
@@ -352,7 +352,7 @@ def run(crawl_directory: Path, results_directory: Path, site_list: frozenset[str
             try:
                 observations.append(observe_site(website, har))
             except (KeyError, TypeError, AttributeError) as shape_error:
-                # Bugs in this script raise these too. (Message says so)
+                # Bugs in this script raise these too (message says so).
                 raise CrawlDataError(
                     f"{website}.har has an unexpected shape, or this script has a bug "
                     f"({type(shape_error).__name__}: {shape_error})"
