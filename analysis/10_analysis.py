@@ -267,7 +267,7 @@ def counted(count: int, noun: str) -> str:
 def print_report(
     observations: list[SiteObservation],
     ranking: list[FeatureRank],
-    expected_websites: int,
+    site_list: frozenset[str],
     csv_path: Path,
 ) -> None:
     """
@@ -277,7 +277,7 @@ def print_report(
 
     :param observations: one per website
     :param ranking: output of `rank_features`
-    :param expected_websites: site list length
+    :param site_list: domains from `sites.csv`
     :param csv_path: where the full ranking went
     """
     first_party_total = sum(site.first_party_response_count for site in observations)
@@ -288,8 +288,13 @@ def print_report(
         f"{counted(first_party_total, 'first-party response')}, "
         f"{policy_total} with Permissions-Policy"
     )
-    if len(observations) != expected_websites:
-        print(f"WARNING: {counted(len(observations), 'website')}, site list has {expected_websites}")
+    crawled = {site.website for site in observations}
+    missing = sorted(site_list - crawled)
+    not_listed = sorted(crawled - site_list)
+    if missing:
+        print(f"WARNING: missing from crawl: {', '.join(missing)}")
+    if not_listed:
+        print(f"WARNING: not on site list, still counted: {', '.join(not_listed)}")
 
     print()
     top = ranking[:TOP_FEATURE_COUNT]
@@ -336,18 +341,24 @@ def print_report(
 # *******************************************
 
 
-def count_site_list(site_list_path: Path) -> int:
+def read_site_list(site_list_path: Path) -> frozenset[str]:
+    """
+    Read domains from a site-list CSV. (The crawler names HAR files after them)
+
+    :param site_list_path: CSV with a `domain` column
+    :return: Domains such as "ru.nl".
+    """
     with open(site_list_path, newline="", encoding="utf-8") as site_list_file:
-        return sum(1 for _ in csv.DictReader(site_list_file))
+        return frozenset(row["domain"].strip() for row in csv.DictReader(site_list_file))
 
 
-def run(crawl_directory: Path, results_directory: Path, expected_websites: int) -> int:
+def run(crawl_directory: Path, results_directory: Path, site_list: frozenset[str]) -> int:
     """
     Run Q10 on one crawl folder.
 
     :param crawl_directory: folder of `.har` files
     :param results_directory: where the CSV goes
-    :param expected_websites: site list length, a different website count prints a warning
+    :param site_list: domains the crawl should hold, a mismatch prints a warning
     :return: 0 on success, 1 if crawl data can't be analyzed. (No CSV is written then)
     """
     observations = []
@@ -368,14 +379,14 @@ def run(crawl_directory: Path, results_directory: Path, expected_websites: int) 
     ranking = rank_features(observations)
     csv_path = results_directory / CSV_NAME
     write_ranking_csv(ranking, csv_path)
-    print_report(observations, ranking, expected_websites, csv_path)
+    print_report(observations, ranking, site_list, csv_path)
     return 0
 
 
 def main() -> None:
     # Piped stdout on Windows defaults to cp1252.
     sys.stdout.reconfigure(encoding="utf-8")
-    sys.exit(run(CRAWL_DIRECTORY, RESULTS_DIRECTORY, count_site_list(SITE_LIST_PATH)))
+    sys.exit(run(CRAWL_DIRECTORY, RESULTS_DIRECTORY, read_site_list(SITE_LIST_PATH)))
 
 
 if __name__ == "__main__":

@@ -221,7 +221,7 @@ def test_csv_has_lf_line_endings_and_full_ranking(tmp_path: Path) -> None:
 def test_fewer_than_five_features(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     observations = [observation("ru.nl", {"a", "b", "c"})]
     ranking = q10.rank_features(observations)
-    q10.print_report(observations, ranking, 1, tmp_path / "q10.csv")
+    q10.print_report(observations, ranking, frozenset({"ru.nl"}), tmp_path / "q10.csv")
     output = capsys.readouterr().out
     assert "Only 3 features disabled on any website" in output
     assert "Tie at cutoff: none" in output
@@ -229,21 +229,26 @@ def test_fewer_than_five_features(capsys: pytest.CaptureFixture[str], tmp_path: 
 
 def test_counts_of_one_are_singular(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     observations = [observation("ru.nl", {"camera"})]
-    q10.print_report(observations, q10.rank_features(observations), 30, tmp_path / "q10.csv")
+    q10.print_report(observations, q10.rank_features(observations), frozenset({"ru.nl"}), tmp_path / "q10.csv")
     output = capsys.readouterr().out
     assert "Examined: 1 website, 1 first-party response," in output
-    assert "WARNING: 1 website, site list has 30" in output
     assert "Only 1 feature disabled on any website" in output
 
     ranking = [FeatureRank(name, 1, 0) for name in "abcdef"]
     tied = [observation(f"s{index}.nl", {name}) for index, name in enumerate("abcdef")]
-    q10.print_report(tied, ranking, 6, tmp_path / "q10.csv")
+    q10.print_report(tied, ranking, frozenset(site.website for site in tied), tmp_path / "q10.csv")
     assert "Tie at cutoff: 6 features tied at 1 website, 5 shown" in capsys.readouterr().out
+
+
+def test_zero_count_is_plural(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    observations = [observation("ru.nl", set())]
+    q10.print_report(observations, q10.rank_features(observations), frozenset({"ru.nl"}), tmp_path / "q10.csv")
+    assert "Only 0 features disabled on any website" in capsys.readouterr().out
 
 
 def test_every_report_section_prints_when_empty(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     observations = [observation("ru.nl", {"camera"})]
-    q10.print_report(observations, q10.rank_features(observations), 1, tmp_path / "q10.csv")
+    q10.print_report(observations, q10.rank_features(observations), frozenset({"ru.nl"}), tmp_path / "q10.csv")
     output = capsys.readouterr().out
     for line in [
         "Tie at cutoff: none",
@@ -265,7 +270,8 @@ def test_report_lists_sites_in_each_section(capsys: pytest.CaptureFixture[str], 
     no_responses = observation("uu.nl", set(), first_party_responses=0)
     observations = [mixed, old_header, no_responses]
 
-    q10.print_report(observations, q10.rank_features(observations), 3, tmp_path / "q10.csv")
+    site_list = frozenset({"ru.nl", "vu.nl", "uu.nl"})
+    q10.print_report(observations, q10.rank_features(observations), site_list, tmp_path / "q10.csv")
     output = capsys.readouterr().out
     assert "  ru.nl: 'Usb=()': bad key" in output
     assert "  camera: ru.nl" in output
@@ -278,13 +284,13 @@ def test_report_lists_sites_in_each_section(capsys: pytest.CaptureFixture[str], 
 # *******************************************
 
 
-def test_count_site_list_skips_header_row(tmp_path: Path) -> None:
+def test_read_site_list_gives_domains_without_header(tmp_path: Path) -> None:
     site_list = tmp_path / "sites.csv"
-    site_list.write_text("domain,country,university\nru.nl,nl,Radboud\nvu.nl,nl,VU\n", encoding="utf-8")
-    assert q10.count_site_list(site_list) == 2
+    site_list.write_text("domain,country,university\nru.nl,nl,Radboud\n vu.nl ,nl,VU\n", encoding="utf-8")
+    assert q10.read_site_list(site_list) == frozenset({"ru.nl", "vu.nl"})
 
     site_list.write_text("domain,country,university\n", encoding="utf-8")
-    assert q10.count_site_list(site_list) == 0
+    assert q10.read_site_list(site_list) == frozenset()
 
 
 def test_run_end_to_end_on_tmp_crawl(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
@@ -301,7 +307,7 @@ def test_run_end_to_end_on_tmp_crawl(capsys: pytest.CaptureFixture[str], tmp_pat
     )
     write_har(crawl, "vu.nl", make_har(make_entry("https://www.vu.nl/")))
 
-    assert q10.run(crawl, tmp_path / "results", 30) == 0
+    assert q10.run(crawl, tmp_path / "results", frozenset({"ru.nl", "glasgow.ac.uk", "vu.nl", "uu.nl"})) == 0
 
     csv_lines = (tmp_path / "results" / q10.CSV_NAME).read_text(encoding="utf-8").splitlines()
     assert csv_lines == [
@@ -311,14 +317,31 @@ def test_run_end_to_end_on_tmp_crawl(capsys: pytest.CaptureFixture[str], tmp_pat
     ]
     output = capsys.readouterr().out
     assert "Examined: 3 websites, 3 first-party responses, 2 with Permissions-Policy" in output
-    assert "WARNING: 3 websites, site list has 30" in output
+    assert "WARNING: missing from crawl: uu.nl" in output
+    assert "not on site list" not in output
+
+
+def test_run_warns_on_site_mismatch_with_equal_count(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    # vu.nl's HAR is missing and a stray example.org.har stands in, so the counts match.
+    crawl = tmp_path / "crawl_data_mobile"
+    crawl.mkdir()
+    write_har(crawl, "ru.nl", make_har(make_entry("https://www.ru.nl/", headers=policy("camera=()"))))
+    write_har(crawl, "example.org", make_har(make_entry("https://example.org/", headers=policy("usb=()"))))
+
+    assert q10.run(crawl, tmp_path / "results", frozenset({"ru.nl", "vu.nl"})) == 0
+    output = capsys.readouterr().out
+    assert "WARNING: missing from crawl: vu.nl" in output
+    assert "WARNING: not on site list, still counted: example.org" in output
 
 
 def test_run_missing_folder_returns_1_and_writes_nothing(
     capsys: pytest.CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
-    assert q10.run(tmp_path / "crawl_data_mobile", tmp_path / "results", 30) == 1
+    assert q10.run(tmp_path / "crawl_data_mobile", tmp_path / "results", frozenset({"ru.nl"})) == 1
     assert not (tmp_path / "results").exists()
     assert "Crawl folder not found" in capsys.readouterr().err
 
@@ -355,7 +378,7 @@ def test_run_wrong_type_field_names_site(
     break_entry(broken_entry)
     write_har(crawl, "vu.nl", make_har(broken_entry))
 
-    assert q10.run(crawl, tmp_path / "results", 2) == 1
+    assert q10.run(crawl, tmp_path / "results", frozenset({"ru.nl", "vu.nl"})) == 1
     assert not (tmp_path / "results").exists()
     assert "vu.nl.har has an unexpected shape" in capsys.readouterr().err
 
@@ -366,6 +389,52 @@ def test_run_invalid_json_returns_1(capsys: pytest.CaptureFixture[str], tmp_path
     write_har(crawl, "ru.nl", make_har(make_entry("https://www.ru.nl/", headers=policy("camera=()"))))
     (crawl / "vu.nl.har").write_text("{ not json", encoding="utf-8", newline="\n")
 
-    assert q10.run(crawl, tmp_path / "results", 2) == 1
+    assert q10.run(crawl, tmp_path / "results", frozenset({"ru.nl", "vu.nl"})) == 1
     assert not (tmp_path / "results").exists()
     assert "vu.nl.har" in capsys.readouterr().err
+
+
+# *******************************************
+# main
+# *******************************************
+
+
+def point_main_at(monkeypatch: pytest.MonkeyPatch, crawl: Path, results: Path, site_list: Path) -> None:
+    monkeypatch.setattr(q10, "CRAWL_DIRECTORY", crawl)
+    monkeypatch.setattr(q10, "RESULTS_DIRECTORY", results)
+    monkeypatch.setattr(q10, "SITE_LIST_PATH", site_list)
+
+
+def test_main_runs_on_its_folders_and_exits_with_run_code(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    crawl = tmp_path / "crawl_data_mobile"
+    crawl.mkdir()
+    write_har(crawl, "ru.nl", make_har(make_entry("https://www.ru.nl/", headers=policy("camera=()"))))
+    site_list = tmp_path / "sites.csv"
+    site_list.write_text("domain,country,university\nru.nl,nl,Radboud\n", encoding="utf-8")
+    point_main_at(monkeypatch, crawl, tmp_path / "results", site_list)
+
+    with pytest.raises(SystemExit) as exit_info:
+        q10.main()
+    assert exit_info.value.code == 0
+    assert (tmp_path / "results" / q10.CSV_NAME).read_text(encoding="utf-8").splitlines()[1] == "1,camera,1,1"
+    assert "WARNING" not in capsys.readouterr().out
+
+
+def test_main_exits_1_without_crawl_data(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    site_list = tmp_path / "sites.csv"
+    site_list.write_text("domain,country,university\nru.nl,nl,Radboud\n", encoding="utf-8")
+    point_main_at(monkeypatch, tmp_path / "crawl_data_mobile", tmp_path / "results", site_list)
+
+    with pytest.raises(SystemExit) as exit_info:
+        q10.main()
+    assert exit_info.value.code == 1
+    assert not (tmp_path / "results").exists()
+    assert "crawl_data_mobile" in capsys.readouterr().err
