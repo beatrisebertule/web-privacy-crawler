@@ -116,7 +116,7 @@ def test_bad_line_poisons_joined_header() -> None:
         parse_permissions_policy(["camera=()", "usb=()("])
 
 
-def test_empty_line_next_to_real_line_is_malformed() -> None:
+def test_empty_line_before_real_line_is_malformed() -> None:
     # Chromium's joined value also starts with a comma
     assert parse_permissions_policy([""]) == features(set(), set())
     with pytest.raises(MalformedPermissionsPolicy):

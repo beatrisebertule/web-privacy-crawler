@@ -5,7 +5,6 @@ Exclusion tests all have at least one valid response that doesn't get excluded
 """
 
 # Standard library imports
-import json
 from pathlib import Path
 
 # Third party imports
@@ -20,37 +19,11 @@ from first_party_responses import (
     header_values,
     iter_crawl_hars,
 )
-
-
-def make_entry(
-    url: str,
-    status: int = 200,
-    headers: tuple[tuple[str, str], ...] = (),
-    redirect: str = "",
-) -> dict:
-    """HAR entry with fields Playwright records and analysis reads."""
-    return {
-        "request": {"url": url},
-        "response": {
-            "status": status,
-            "redirectURL": redirect,
-            "headers": [{"name": name, "value": value} for name, value in headers],
-        },
-    }
-
-
-def make_har(*entries: dict) -> dict:
-    return {"log": {"entries": list(entries)}}
+from har_builders import make_entry, make_har, write_har
 
 
 def urls_of(entries) -> list[str]:
     return [entry["request"]["url"] for entry in entries]
-
-
-def write_har(directory: Path, site: str, har: dict) -> None:
-    # Text-mode write on Windows gives CRLF.
-    with open(directory / f"{site}.har", "w", encoding="utf-8", newline="\n") as har_file:
-        json.dump(har, har_file)
 
 
 # *******************************************
