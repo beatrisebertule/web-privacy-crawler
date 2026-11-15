@@ -255,6 +255,15 @@ def write_ranking_csv(ranking: list[FeatureRank], csv_path: Path) -> None:
             writer.writerow([position, rank.feature, rank.websites, rank.websites_on_final_page])
 
 
+def counted(count: int, noun: str) -> str:
+    """
+    Plural or singular based on count
+
+    example: (1, "website") -> "1 website", (3, "website") -> "3 websites"
+    """
+    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
 def print_report(
     observations: list[SiteObservation],
     ranking: list[FeatureRank],
@@ -275,16 +284,17 @@ def print_report(
     policy_total = sum(site.permissions_policy_response_count for site in observations)
     print("Q10: Permissions-Policy features disabled, mobile crawl")
     print(
-        f"Examined: {len(observations)} websites, {first_party_total} first-party responses, "
+        f"Examined: {counted(len(observations), 'website')}, "
+        f"{counted(first_party_total, 'first-party response')}, "
         f"{policy_total} with Permissions-Policy"
     )
     if len(observations) != expected_websites:
-        print(f"WARNING: {len(observations)} websites, site list has {expected_websites}")
+        print(f"WARNING: {counted(len(observations), 'website')}, site list has {expected_websites}")
 
     print()
     top = ranking[:TOP_FEATURE_COUNT]
     if len(top) < TOP_FEATURE_COUNT:
-        print(f"Only {len(top)} features disabled on any website")
+        print(f"Only {counted(len(top), 'feature')} disabled on any website")
     print(f"{'rank':<6}{'feature':<32}{'websites':>10}{'on final page':>16}")
     for position, rank in enumerate(top, start=1):
         print(f"{position:<6}{rank.feature:<32}{rank.websites:>10}{rank.websites_on_final_page:>16}")
@@ -295,7 +305,8 @@ def print_report(
         print("Tie at cutoff: none")
     else:
         print(
-            f"Tie at cutoff: {tie.tied_total} features tied at {tie.website_count} websites, "
+            f"Tie at cutoff: {counted(tie.tied_total, 'feature')} tied at "
+            f"{counted(tie.website_count, 'website')}, "
             f"{tie.tied_shown} shown, separated by {tie.separated_by.value}"
         )
 

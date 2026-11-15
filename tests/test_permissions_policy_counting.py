@@ -227,6 +227,20 @@ def test_fewer_than_five_features(capsys: pytest.CaptureFixture[str], tmp_path: 
     assert "Tie at cutoff: none" in output
 
 
+def test_counts_of_one_are_singular(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    observations = [observation("ru.nl", {"camera"})]
+    q10.print_report(observations, q10.rank_features(observations), 30, tmp_path / "q10.csv")
+    output = capsys.readouterr().out
+    assert "Examined: 1 website, 1 first-party response," in output
+    assert "WARNING: 1 website, site list has 30" in output
+    assert "Only 1 feature disabled on any website" in output
+
+    ranking = [FeatureRank(name, 1, 0) for name in "abcdef"]
+    tied = [observation(f"s{index}.nl", {name}) for index, name in enumerate("abcdef")]
+    q10.print_report(tied, ranking, 6, tmp_path / "q10.csv")
+    assert "Tie at cutoff: 6 features tied at 1 website, 5 shown" in capsys.readouterr().out
+
+
 def test_every_report_section_prints_when_empty(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     observations = [observation("ru.nl", {"camera"})]
     q10.print_report(observations, q10.rank_features(observations), 1, tmp_path / "q10.csv")
