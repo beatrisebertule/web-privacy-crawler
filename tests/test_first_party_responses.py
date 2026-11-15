@@ -48,7 +48,7 @@ def urls_of(entries) -> list[str]:
 
 
 def write_har(directory: Path, site: str, har: dict) -> None:
-    # Explicit LF, text-mode write on Windows gives CRLF.
+    # Text-mode write on Windows gives CRLF.
     with open(directory / f"{site}.har", "w", encoding="utf-8", newline="\n") as har_file:
         json.dump(har, har_file)
 
@@ -245,7 +245,7 @@ def test_iter_crawl_hars_yields_site_from_file_stem_sorted(
         write_har(tmp_path, site, make_har(make_entry(f"https://www.{site}/")))
     (tmp_path / "ru.nl_pre_consent.png").write_bytes(b"")
 
-    # NTFS already lists files alphabetically, reversed listing checks sort.
+    # NTFS already lists files alphabetically. Tests sort by reversing the list.
     original_glob = Path.glob
     monkeypatch.setattr(
         Path,

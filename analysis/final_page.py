@@ -44,7 +44,7 @@ def final_page_url(har: dict) -> str | None:
 
 def final_page_entry(har: dict) -> dict | None:
     """
-    HAR entry for resulting page of a visit.
+    HAR entry for visit page result.
 
     :param har: parsed HAR file
     :return: First entry for final page URL, or None if no entries.

@@ -64,7 +64,7 @@ def _registrable_domain(host: str) -> str | None:
 
 
 def _same_site(host: str, page_host: str, page_domain: str | None) -> bool:
-    # IP addresses and `localhost` have no eTLD+1, only the exact host matches.
+    # IP addresses and `localhost` have no eTLD+1. (Only the exact host matches them)
     if page_domain is None:
         return host == page_host
     return _registrable_domain(host) == page_domain
