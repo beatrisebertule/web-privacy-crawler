@@ -42,6 +42,27 @@ def final_page_url(har: dict) -> str | None:
     return page_url
 
 
+def final_page_entry(har: dict) -> dict | None:
+    """
+    HAR entry for resulting page of a visit.
+
+    :param har: parsed HAR file
+    :return: First entry for final page URL, or None if no entries.
+    :rtype: dict | None
+    """
+    page_url = final_page_url(har)
+    if page_url is None:
+        return None
+    # First URL request loads the page, later ones are refetches.
+    return next(
+        (
+            entry for entry in har["log"]["entries"]
+            if entry["request"]["url"] == page_url
+        ),
+        None,
+    )
+
+
 def final_page_host(har: dict, fallback: str) -> str:
     """
     Hostname of the page a visit ended up on.

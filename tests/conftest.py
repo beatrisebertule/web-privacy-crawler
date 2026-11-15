@@ -21,6 +21,8 @@ from playwright.sync_api import Browser, Page, Playwright, sync_playwright
 # crawler_src is not a package. Path entry instead of an install.
 TESTS_DIRECTORY = Path(__file__).resolve().parent
 sys.path.insert(0, str(TESTS_DIRECTORY.parent / "crawler_src"))
+# Analysis scripts import siblings by name, tests need folder on same path
+sys.path.insert(0, str(TESTS_DIRECTORY.parent / "analysis"))
 
 from crawler import WaitSchedule  # noqa: E402
 
