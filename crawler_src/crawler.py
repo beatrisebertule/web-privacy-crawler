@@ -859,7 +859,12 @@ def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
         print(f"Blocking {blocked_host_count} hostnames from {DISCONNECT_SERVICES_PATH.name}")
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=False)
+        # Disable flags that make Playwright automation obvious
+        browser = playwright.chromium.launch(
+            headless=False,
+            args=["--disable-blink-features=AutomationControlled"],
+            ignore_default_args=["--disable-field-trial-config"],
+        )
         crawl_sites(
             browser,
             playwright,
