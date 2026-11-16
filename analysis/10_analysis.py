@@ -34,7 +34,7 @@ from crawler import read_site_list  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 CRAWL_DIRECTORY = ROOT / "crawl_data_mobile"
 RESULTS_DIRECTORY = ROOT / "results"
-SITE_LIST_PATH = ROOT / "sites.csv"
+SITE_LIST_PATH = ROOT / "crawler_src" / "sites.csv"
 CSV_NAME = "q10_permissions_policy_disabled_mobile.csv"
 TOP_FEATURE_COUNT = 5
 

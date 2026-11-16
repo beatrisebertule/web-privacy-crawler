@@ -12,7 +12,7 @@ from final_page import final_page_host
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTDIR = ROOT / "results"
-TRANCO_PATH = ROOT / "tranco.csv" # Tranco list, one "rank,domain" per line
+TRANCO_PATH = ROOT / "crawler_src" / "tranco.csv" # Tranco list, one "rank,domain" per line
 TLD_COUNTRY = {"edu": "US", "nl": "NL", "uk": "UK"} # top-level domain -> country of the university
 
 def third_party_domains(har):
@@ -92,6 +92,7 @@ def number_of_domains(site):
     return site[1]
  
 if __name__ == "__main__":
+    OUTDIR.mkdir(exist_ok=True)
     ranks = load_tranco_ranks(TRANCO_PATH)
     sites = sorted(domains_per_site(ROOT / "crawl_data_desktop"))
 

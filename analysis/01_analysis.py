@@ -17,7 +17,7 @@ from final_page import final_page_host
 from plot_text import CRAWL_AXIS_LABEL
 
 ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
-ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
+ENTITIES = "./crawler_src/entities.json"      # disconnect entities list (for metric d)
 OUTDIR = "results"
 METRICS_CSV = "q1_per_website_metrics.csv"  # Q2 reads this
 

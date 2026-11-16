@@ -20,7 +20,7 @@ from crawler import (
 from final_page import final_page_host
 from first_party_responses import first_party_responses
 
-ENTITIES = ROOT / "entities.json"       # disconnect entities list (for metric d)
+ENTITIES = ROOT / "crawler_src" / "entities.json"  # Disconnect entities list
 
 OUTDIR = ROOT / "results"
 

@@ -13,7 +13,7 @@ from tld import get_fld
 from final_page import final_page_host
 
 ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
-ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
+ENTITIES = "./crawler_src/entities.json"      # disconnect entities list (for metric d)
 OUTDIR = "results"
 # Q2 reads Q1's per-website CSV. Names here must differ from it.
 METRICS_CSV = "q4_per_website_metrics_desktop.csv"

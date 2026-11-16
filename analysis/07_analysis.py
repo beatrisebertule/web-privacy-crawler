@@ -101,6 +101,7 @@ def top_domains(sites, categories_by_host):
     return rows
 
 if __name__ == "__main__":
+    OUTDIR.mkdir(exist_ok=True)
     categories_by_host = load_disconnect_categories(DISCONNECT_SERVICES_PATH)
 
     desktop_domains = domains_of_crawl(ROOT / "crawl_data_desktop")

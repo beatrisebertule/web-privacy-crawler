@@ -30,7 +30,7 @@ from crawler import read_site_list  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 CRAWL_DIRECTORY = ROOT / "crawl_data_desktop"
 RESULTS_DIRECTORY = ROOT / "results"
-SITE_LIST_PATH = ROOT / "sites.csv"
+SITE_LIST_PATH = ROOT / "crawler_src" / "sites.csv"
 CSV_NAME = "q11_referrer_policy_no_referrer_desktop.csv"
 # First two are the assignment's column names for the Q11 table.
 CSV_COLUMNS = [

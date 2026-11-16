@@ -28,10 +28,10 @@ Designed to only run one mode at a time, not several at once, to avoid getting b
 or spam protection.
 
 ```
-python crawler_src/crawler.py -m desktop -l sites.csv
-python crawler_src/crawler.py -m mobile  -l sites.csv
-python crawler_src/crawler.py -m block   -l sites.csv
-python crawler_src/crawler.py -m ignore  -l sites.csv
+python crawler_src/crawler.py -m desktop -l crawler_src/sites.csv
+python crawler_src/crawler.py -m mobile  -l crawler_src/sites.csv
+python crawler_src/crawler.py -m block   -l crawler_src/sites.csv
+python crawler_src/crawler.py -m ignore  -l crawler_src/sites.csv
 ```
 
 | Mode | Browser | Blocking | Consent |
