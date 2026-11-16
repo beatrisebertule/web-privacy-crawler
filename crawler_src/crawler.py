@@ -45,6 +45,9 @@ from playwright.sync_api import (
 # Paths are relative to the repo root, not the working directory.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ACCEPT_WORDS_PATH = REPO_ROOT / "accept_words.txt"
+# Phrases that just close the banner. They're only tried if no accept phrase matches,
+# because closing a banner isn't consenting to it.
+CLOSE_WORDS_PATH = REPO_ROOT / "close_words.txt"
 
 MOBILE_DEVICE_NAME = "Pixel 10"
 
@@ -69,6 +72,8 @@ SCROLL_PAUSE_SECONDS = (0.1, 0.3)
 # Consent
 CLICKABLE_SELECTOR = "button, a, [role=button], input[type=button], input[type=submit]"
 CLICK_TIMEOUT_MILLISECONDS = 3000
+# Columns of consent_clicks_<mode>.csv, in order.
+CONSENT_CLICKS_HEADER = ("domain", "country", "match", "label", "phrase")
 
 # Words that mark a button as a refusal or a settings link, matched whole against the
 # normalized button text. Keeps a substring match on "accept" off "accept necessary only".
@@ -106,6 +111,11 @@ class CrawlMode(enum.Enum):
         # One resume file per mode. A shared one made the second crawl skip everything.
         return REPO_ROOT / f"crawled_{self.value}.txt"
 
+    @property
+    def consent_clicks_path(self) -> Path:
+        # Kept out of crawl_data_<mode>/ because that folder goes into the hand-in zip as is.
+        return REPO_ROOT / f"consent_clicks_{self.value}.csv"
+
 
 @dataclass(frozen=True)
 class WaitSchedule:
@@ -122,6 +132,31 @@ class WaitSchedule:
     after_scroll: float = 5.0
 
 
+class ConsentMatch(enum.Enum):
+    """
+    Which phrase list the clicked consent button came from.
+
+    `FALLBACK` means no accept phrase matched, so the banner was only closed.
+    """
+
+    ACCEPT = "accept"
+    FALLBACK = "fallback"
+
+
+@dataclass(frozen=True)
+class ButtonChoice:
+    """
+    Consent button picked by `choose_accept_button`.
+
+    `label` is the button's text and `phrase` is the list entry it matched, both normalized.
+    """
+
+    locator: Locator
+    label: str
+    phrase: str
+    match: ConsentMatch
+
+
 @dataclass
 class VisitResult:
     """
@@ -135,7 +170,9 @@ class VisitResult:
     site_name: str
     final_url: str | None = None
     page_loaded: bool = False
-    consent_clicked: bool = False
+    consent_match: ConsentMatch | None = None
+    consent_label: str | None = None
+    consent_phrase: str | None = None
     blocked_requests: int = 0
     error: str | None = None
     first_attempt_error: str | None = None
@@ -143,6 +180,10 @@ class VisitResult:
     @property
     def succeeded(self) -> bool:
         return self.error is None
+
+    @property
+    def consent_clicked(self) -> bool:
+        return self.consent_match is not None
 
 
 # *******************************************
@@ -206,16 +247,20 @@ def read_site_list(site_list_path: Path) -> list[tuple[str, str]]:
     return sites_to_crawl
 
 
-def read_accept_words(accept_words_path: Path) -> list[str]:
+def read_button_phrases(phrases_path: Path) -> list[str]:
     """
-    Read the consent button phrases.
+    Read one consent button phrase list, `accept_words.txt` or `close_words.txt`.
 
-    :param accept_words_path: text file, one phrase per line
+    :param phrases_path: text file, one phrase per line
     :return: Non-empty lines, stripped, in file order.
     :rtype: list[str]
     """
-    with open(accept_words_path, encoding="utf-8") as accept_words_file:
-        return [line.strip() for line in accept_words_file if line.strip()]
+    with open(phrases_path, encoding="utf-8") as phrases_file:
+        return [line.strip() for line in phrases_file if line.strip()]
+
+
+# Never changes during a crawl, so it's read once here and used as the default below.
+CLOSE_WORDS = read_button_phrases(CLOSE_WORDS_PATH)
 
 
 # *******************************************
@@ -251,6 +296,39 @@ def add_to_crawled_list(crawled_list_path: Path, website_domain: str, country_co
     """
     with open(crawled_list_path, "a", newline="", encoding="utf-8") as crawled_list_file:
         csv.writer(crawled_list_file).writerow([website_domain, country_code])
+
+
+def add_to_consent_clicks(
+    consent_clicks_path: Path,
+    website_domain: str,
+    country_code: str,
+    result: VisitResult,
+) -> None:
+    """
+    Add a row saying what got clicked on one visit. Writes the header too if the file is new.
+
+    example row: "ru.nl,nl,accept,accept all,accept all"
+    example row: "lse.ac.uk,gb,none,," if nothing was clicked
+
+    :param consent_clicks_path: click record for this mode, created on first write
+    :param website_domain: as it appears in the site list
+    :param country_code: two-letter code from the site list
+    :param result: finished visit from `visit_site`
+    """
+    is_new_file = not consent_clicks_path.exists()
+    row = {
+        "domain": website_domain,
+        "country": country_code,
+        "match": result.consent_match.value if result.consent_match else "none",
+        "label": result.consent_label or "",
+        "phrase": result.consent_phrase or "",
+    }
+    # csv writes CRLF by default, even with newline="".
+    with open(consent_clicks_path, "a", newline="", encoding="utf-8") as consent_clicks_file:
+        writer = csv.writer(consent_clicks_file, lineterminator="\n")
+        if is_new_file:
+            writer.writerow(CONSENT_CLICKS_HEADER)
+        writer.writerow([row[column] for column in CONSENT_CLICKS_HEADER])
 
 
 def select_sites_to_crawl(
@@ -349,12 +427,12 @@ def collect_clickables(page: Page) -> list[tuple[Locator, str]]:
     return clickables
 
 
-def choose_accept_button(
+def best_phrase_match(
     clickables: list[tuple[Locator, str]],
-    accept_words: list[str],
-) -> Locator | None:
+    phrases: list[str],
+) -> tuple[Locator, str, str] | None:
     """
-    Pick the clickable that best matches the accept phrases.
+    Pick the clickable that best matches one phrase list.
 
     Two passes, longest phrase first in each.
     Pass 1 takes an exact match on the label.
@@ -363,52 +441,89 @@ def choose_accept_button(
     "Complete your application" is not consent.
 
     :param clickables: output of `collect_clickables`
-    :param accept_words: phrases from `read_accept_words`, any case
-    :return: Best match, or None.
-    :rtype: Locator | None
+    :param phrases: phrases from `read_button_phrases`, any case
+    :return: `(locator, label, phrase)` for the best match, or None. Phrase is normalized.
+    :rtype: tuple[Locator, str, str] | None
     """
     phrases_longest_first = sorted(
-        {normalize_button_text(phrase) for phrase in accept_words}, key=len, reverse=True
+        {normalize_button_text(phrase) for phrase in phrases}, key=len, reverse=True
     )
     for phrase in phrases_longest_first:
         for locator, label in clickables:
             if label == phrase:
-                return locator
+                return locator, label, phrase
     for phrase in phrases_longest_first:
         if " " not in phrase:
             continue
         for locator, label in clickables:
             if contains_phrase(label, phrase) and not looks_like_a_refusal(label):
-                return locator
+                return locator, label, phrase
     return None
 
 
-def accept_cookies(page: Page, accept_words: list[str]) -> bool:
+def choose_accept_button(
+    clickables: list[tuple[Locator, str]],
+    accept_words: list[str],
+    close_words: list[str] = CLOSE_WORDS,
+) -> ButtonChoice | None:
     """
-    Click the consent dialog's accept button, in whichever frame it lives.
+    Pick the consent button to click. A dialogue-closing phrase is only used when no accept phrase 
+    matches.
+
+    example: labels "close" and "accept all cookies on this site" -> the accept button, `ACCEPT`
+
+    :param clickables: output of `collect_clickables`
+    :param accept_words: phrases from `accept_words.txt`
+    :param close_words: close phrases, `close_words.txt` unless given
+    :return: Chosen button, or None if neither list matches.
+    :rtype: ButtonChoice | None
+    """
+    for phrases, match in ((accept_words, ConsentMatch.ACCEPT), (close_words, ConsentMatch.FALLBACK)):
+        best = best_phrase_match(clickables, phrases)
+        if best is not None:
+            locator, label, phrase = best
+            return ButtonChoice(locator, label, phrase, match)
+    return None
+
+
+def accept_cookies(
+    page: Page,
+    accept_words: list[str],
+    close_words: list[str] = CLOSE_WORDS,
+) -> ButtonChoice | None:
+    """
+    Click the consent dialog's accept button in any frame, or a close button if there isn't one.
 
     A hidden or unclickable best match is dropped and the next best tried.
+    Every accept candidate is tried before any close candidate.
 
     :param page: page after load and the post-load wait
-    :param accept_words: phrases from `read_accept_words`
-    :return: Whether anything was clicked.
-    :rtype: bool
+    :param accept_words: phrases from `accept_words.txt`
+    :param close_words: close phrases, `close_words.txt` unless given
+    :return: Button that got clicked, or None.
+    :rtype: ButtonChoice | None
     """
     clickables = collect_clickables(page)
     while clickables:
-        chosen = choose_accept_button(clickables, accept_words)
+        chosen = choose_accept_button(clickables, accept_words, close_words)
         if chosen is None:
-            return False
+            return None
         try:
-            if chosen.is_visible():
-                chosen.click(timeout=CLICK_TIMEOUT_MILLISECONDS)
-                print("Accepted cookies.")
-                return True
+            if chosen.locator.is_visible():
+                chosen.locator.click(timeout=CLICK_TIMEOUT_MILLISECONDS)
+                if chosen.match is ConsentMatch.ACCEPT:
+                    print(f"Accepted cookies: \"{chosen.label}\"")
+                else:
+                    print(f"Closed consent dialog, no accept button (fallback): \"{chosen.label}\"")
+                return chosen
         except PlaywrightError as click_error:
             # Covered by another element, detached, or the page navigated.
             print(f"Consent click failed, trying next candidate: {click_error}")
-        clickables = [(locator, text) for locator, text in clickables if locator is not chosen]
-    return False
+        clickables = [
+            (locator, text) for locator, text in clickables
+            if locator is not chosen.locator
+        ]
+    return None
 
 
 def is_at_bottom(page: Page) -> bool:
@@ -545,6 +660,7 @@ def visit_site(
     accept_words: list[str],
     waits: WaitSchedule = WaitSchedule(),
     categories_by_host: dict[str, frozenset[str]] | None = None,
+    close_words: list[str] = CLOSE_WORDS,
 ) -> VisitResult:
     """
     Visit one URL in a fresh context. Writes HAR, screenshots and video.
@@ -560,10 +676,11 @@ def visit_site(
     :param site_name: names the output files
     :param url: what to open
     :param output_directory: created if missing
-    :param accept_words: phrases from `read_accept_words`
+    :param accept_words: phrases from `accept_words.txt`
     :param waits: sleeps between steps, assignment defaults
     :param categories_by_host: output of `load_disconnect_categories`. Required in block mode,
         ignored in the others.
+    :param close_words: close phrases, `close_words.txt` unless given
     :return: What happened. `error` is set and the rest best effort if the visit threw.
     :rtype: VisitResult
     """
@@ -596,7 +713,11 @@ def visit_site(
         page.screenshot(path=str(output_directory / f"{site_name}_pre_consent.png"))
 
         if crawl_mode.accepts_consent:
-            result.consent_clicked = accept_cookies(page, accept_words)
+            clicked = accept_cookies(page, accept_words, close_words)
+            if clicked is not None:
+                result.consent_match = clicked.match
+                result.consent_label = clicked.label
+                result.consent_phrase = clicked.phrase
             time.sleep(waits.after_consent)
             page.screenshot(path=str(output_directory / f"{site_name}_post_consent.png"))
 
@@ -636,6 +757,8 @@ def crawl_sites(
     waits: WaitSchedule = WaitSchedule(),
     url_for_site: Callable[[str], str] = homepage_url,
     categories_by_host: dict[str, frozenset[str]] | None = None,
+    consent_clicks_path: Path | None = None,
+    close_words: list[str] = CLOSE_WORDS,
 ) -> list[VisitResult]:
     """
     Visit every site not yet in the resume list, one at a time, and record each success as done.
@@ -644,15 +767,27 @@ def crawl_sites(
     :param playwright: running Playwright
     :param crawl_mode: which of the four crawls this is
     :param sites: `(website_domain, country_code)` pairs from `read_site_list`
-    :param accept_words: phrases from `read_accept_words`
+    :param accept_words: phrases from `accept_words.txt`
     :param output_directory: where every visit writes its files
     :param crawled_list_path: resume CSV for this mode
     :param waits: sleeps between steps, assignment defaults
     :param url_for_site: site name to URL. Tests point it at localhost.
     :param categories_by_host: output of `load_disconnect_categories`, required in block mode
+    :param consent_clicks_path: click record for this mode, or None to skip it.
+        Starts fresh if there's no resume list yet.
+    :param close_words: close phrases, `close_words.txt` unless given
     :return: One result per site visited this run.
     :rtype: list[VisitResult]
     """
+    # No resume list means the whole list gets crawled again, so old click rows would be duplicates.
+    if (
+        crawl_mode.accepts_consent
+        and consent_clicks_path is not None
+        and consent_clicks_path.exists()
+        and not crawled_list_path.exists()
+    ):
+        print(f"No {crawled_list_path.name}, so starting {consent_clicks_path.name} fresh")
+        consent_clicks_path.unlink()
     results = []
     for website_domain, country_code in select_sites_to_crawl(sites, crawled_list_path):
         result = visit_site(
@@ -665,6 +800,7 @@ def crawl_sites(
             accept_words,
             waits,
             categories_by_host=categories_by_host,
+            close_words=close_words,
         )
         # Bare domain that never loaded gets one retry with www. Files keep the list's name.
         if not result.page_loaded and not website_domain.startswith("www."):
@@ -680,11 +816,14 @@ def crawl_sites(
                 accept_words,
                 waits,
                 categories_by_host=categories_by_host,
+                close_words=close_words,
             )
             result.first_attempt_error = first_attempt_error
         # Failed visits stay out of resume list, next run retries.
         if result.succeeded:
             add_to_crawled_list(crawled_list_path, website_domain, country_code)
+            if crawl_mode.accepts_consent and consent_clicks_path is not None:
+                add_to_consent_clicks(consent_clicks_path, website_domain, country_code, result)
         print(f"Finished crawling {website_domain}.")
         results.append(result)
     return results
@@ -700,7 +839,7 @@ def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
     :param site_list_path: CSV for `read_site_list`
     """
     sites_to_crawl = read_site_list(site_list_path)
-    accept_words = read_accept_words(ACCEPT_WORDS_PATH)
+    accept_words = read_button_phrases(ACCEPT_WORDS_PATH)
     print(f"Crawl mode: {crawl_mode.value}")
     print(f"Loaded {len(sites_to_crawl)} websites from {site_list_path}")
     remaining_count = len(select_sites_to_crawl(sites_to_crawl, crawl_mode.crawled_list_path))
@@ -708,6 +847,8 @@ def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
         f"{len(sites_to_crawl) - remaining_count} already done in {crawl_mode.crawled_list_path.name}, "
         f"{remaining_count} to crawl"
     )
+    if crawl_mode.accepts_consent:
+        print(f"Consent clicks recorded in {crawl_mode.consent_clicks_path.name}")
 
     categories_by_host = None
     if crawl_mode is CrawlMode.BLOCK:
@@ -728,6 +869,7 @@ def run_crawl(crawl_mode: CrawlMode, site_list_path: Path) -> None:
             crawl_mode.output_directory,
             crawl_mode.crawled_list_path,
             categories_by_host=categories_by_host,
+            consent_clicks_path=crawl_mode.consent_clicks_path,
         )
         browser.close()
 
