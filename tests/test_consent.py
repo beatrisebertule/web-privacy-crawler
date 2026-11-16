@@ -5,6 +5,9 @@ Each fixture button writes `clicked:<its text>` into the document title.
 A test reads the title back to see which element got clicked, or that nothing did.
 """
 
+# Standard library imports
+from pathlib import Path
+
 # Third party imports
 import pytest
 from playwright.sync_api import Page
@@ -12,21 +15,35 @@ from playwright.sync_api import Page
 # Local package imports
 from crawler import (
     ACCEPT_WORDS_PATH,
+    CLOSE_WORDS,
+    CLOSE_WORDS_PATH,
     accept_cookies,
     looks_like_a_refusal,
     normalize_button_text,
-    read_accept_words,
+    read_button_phrases,
 )
 
 
 @pytest.fixture(scope="module")
 def accept_words() -> list[str]:
-    return read_accept_words(ACCEPT_WORDS_PATH)
+    return read_button_phrases(ACCEPT_WORDS_PATH)
 
 
-def test_accept_words_file_is_non_empty_and_stripped(accept_words: list[str]) -> None:
-    assert accept_words
-    assert all(word == word.strip() and word for word in accept_words)
+@pytest.mark.parametrize("phrases_path", [ACCEPT_WORDS_PATH, CLOSE_WORDS_PATH])
+def test_phrase_file_is_non_empty_and_stripped(phrases_path: Path) -> None:
+    phrases = read_button_phrases(phrases_path)
+
+    assert phrases
+    assert all(phrase == phrase.strip() and phrase for phrase in phrases)
+
+
+def test_phrase_files_do_not_overlap(accept_words: list[str]) -> None:
+    # Phrase in both files would be tried as an accept and never reach the fallback.
+    normalized_accept = {normalize_button_text(phrase) for phrase in accept_words}
+    normalized_close = {normalize_button_text(phrase) for phrase in CLOSE_WORDS}
+
+    assert "close" in normalized_close
+    assert normalized_accept.isdisjoint(normalized_close)
 
 
 @pytest.mark.parametrize(
