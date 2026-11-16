@@ -5,6 +5,7 @@ One visit must leave exactly the files the hand-in zip expects, named after the 
 """
 
 # Standard library imports
+import csv
 import json
 from pathlib import Path
 
@@ -16,17 +17,18 @@ from playwright.sync_api import Browser, Playwright
 from conftest import FIXTURES_DIRECTORY, NO_WAITS
 from crawler import (
     ACCEPT_WORDS_PATH,
+    CONSENT_CLICKS_HEADER,
     CrawlMode,
     crawl_sites,
     load_disconnect_categories,
-    read_accept_words,
+    read_button_phrases,
     visit_site,
 )
 
 
 @pytest.fixture(scope="module")
 def accept_words() -> list[str]:
-    return read_accept_words(ACCEPT_WORDS_PATH)
+    return read_button_phrases(ACCEPT_WORDS_PATH)
 
 
 @pytest.fixture(scope="module")
@@ -99,7 +101,7 @@ def test_ignore_mode_writes_no_post_consent_screenshot_and_never_clicks(
 
 
 def png_size(png_path: Path) -> tuple[int, int]:
-    # Width and height sit at bytes 16 to 24 of a PNG header.
+    # Width and height are bytes 16 to 24 of a PNG header.
     header = png_path.read_bytes()[16:24]
     return int.from_bytes(header[:4], "big"), int.from_bytes(header[4:], "big")
 
@@ -370,3 +372,46 @@ def test_site_that_loads_is_not_retried(
 
     assert requested_names == ["fixture.edu"]
     assert results[0].first_attempt_error is None
+
+
+def read_consent_clicks(consent_clicks_path: Path) -> list[list[str]]:
+    # Not DictReader, which drops a repeated column name without an error.
+    with open(consent_clicks_path, newline="", encoding="utf-8") as consent_clicks_file:
+        return list(csv.reader(consent_clicks_file))
+
+
+@pytest.mark.parametrize(
+    ("fixture_page", "expected_row"),
+    [
+        ("banner_button.html", ["fixture.edu", "nl", "accept", "accept all cookies", "accept all cookies"]),
+        ("banner_close_only.html", ["fixture.edu", "nl", "fallback", "close", "close"]),
+        ("no_banner.html", ["fixture.edu", "nl", "none", "", ""]),
+    ],
+)
+def test_consent_clicks_records_what_was_clicked(
+    fixture_page: str,
+    expected_row: list[str],
+    headless_browser: Browser,
+    playwright_instance: Playwright,
+    fixture_server_url: str,
+    accept_words: list[str],
+    tmp_path: Path,
+) -> None:
+    consent_clicks_path = tmp_path / "consent_clicks.csv"
+
+    crawl_sites(
+        headless_browser,
+        playwright_instance,
+        CrawlMode.DESKTOP,
+        [("fixture.edu", "nl")],
+        accept_words,
+        tmp_path / "out",
+        tmp_path / "crawled.txt",
+        NO_WAITS,
+        url_for_site=lambda _: f"{fixture_server_url}/{fixture_page}",
+        consent_clicks_path=consent_clicks_path,
+    )
+
+    assert read_consent_clicks(consent_clicks_path) == [list(CONSENT_CLICKS_HEADER), expected_row]
+    # The crawl folder goes into the hand-in zip as is, so the CSV mustn't land there.
+    assert not any(path.suffix == ".csv" for path in (tmp_path / "out").iterdir())

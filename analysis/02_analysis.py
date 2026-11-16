@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-IN_CSV = "./results/per_website_metrics.csv"
+IN_CSV = "./results/q1_per_website_metrics.csv"           # written by 01_analysis.py
 OUTDIR = "results"
 MODES = ["desktop", "mobile", "block", "ignore"]           # column order
 LABELS = {"desktop": "Desktop", "mobile": "Mobile",
@@ -21,15 +21,40 @@ METRICS = [                                                 # row order (1a-d)
 STATS = ["Min", "Median", "Max"]
 
 
+class MetricsFileError(ValueError):
+    """Q1's per-website CSV is missing or lacks a column Q2 reads."""
+
+
 def fmt(x):
     """Integers as ints; half-values (medians) keep one decimal."""
+    if np.isnan(x):  # crawl with no rows
+        return "-"
     return str(int(x)) if float(x) == int(x) else f"{x:.1f}"
 
 
 def load(in_csv):
     data = {m: {key: [] for key, _ in METRICS} for m in MODES}
-    with open(in_csv, newline="", encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
+    try:
+        fh = open(in_csv, newline="", encoding="utf-8")
+    except FileNotFoundError as missing:
+        raise MetricsFileError(
+            f"{in_csv} not found. 01_analysis.py writes it, run that first"
+        ) from missing
+    with fh:
+        reader = csv.DictReader(fh)
+        # `fieldnames` is None if file is empty
+        columns = reader.fieldnames or []
+        missing_columns = [
+            column for column in ["crawl", *(key for key, _ in METRICS)]
+            if column not in columns
+        ]
+        if missing_columns:
+            noun = "column" if len(missing_columns) == 1 else "columns"
+            raise MetricsFileError(
+                f"{in_csv} is missing {noun} {', '.join(missing_columns)}. "
+                f"01_analysis.py writes it, run that first"
+            )
+        for row in reader:
             mode = row["crawl"].strip().lower()
             if mode not in data:
                 continue
@@ -48,8 +73,15 @@ def stats(vals):
 if __name__ == "__main__":
     in_csv = sys.argv[1] if len(sys.argv) > 1 else IN_CSV
 
-    data = load(in_csv)
+    try:
+        data = load(in_csv)
+    except MetricsFileError as input_error:
+        print(f"Q2 stopped: {input_error}", file=sys.stderr)
+        sys.exit(1)
     counts = {m: len(data[m]["requests"]) for m in MODES}
+    for m in MODES:
+        if counts[m] == 0:
+            print(f'Q2 warning: no {LABELS[m]} rows in {in_csv}, its columns show "-"', file=sys.stderr)
     summ = {key: {m: stats(data[m][key]) for m in MODES} for key, _ in METRICS}
 
     header = ["Metric"] + [f"{LABELS[m]} {s}" for m in MODES for s in STATS]

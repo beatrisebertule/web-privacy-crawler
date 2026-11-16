@@ -179,7 +179,7 @@ def test_block_mode_without_list_raises(
 # *******************************************
 
 def test_real_list_has_every_blocked_category(real_categories: dict[str, frozenset[str]]) -> None:
-    # Catches a typo in BLOCKED_CATEGORIES, or Disconnect renaming a category.
+    # Catches a typo in `BLOCKED_CATEGORIES`, or Disconnect renaming a category.
     all_categories = frozenset().union(*real_categories.values())
     assert BLOCKED_CATEGORIES <= all_categories
 

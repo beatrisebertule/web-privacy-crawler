@@ -119,10 +119,6 @@ autoriser tous les cookies
 autorizza
 autorizza e chiudi
 c'est ok
-chiudi
-chiudi o scorri la pagina
-close
-close this message and continue
 compris
 conferma
 confirm
@@ -160,7 +156,6 @@ enable all cookies
 entés
 erlauben
 estoy de acuerdo
-fermer
 fine by me
 fine by me, i accept
 fortfahren
@@ -231,7 +226,6 @@ prihvati i zatvori
 prosegui
 prosseguir
 przejdź dalej
-save and close
 seguir navegando
 select all
 si
@@ -248,7 +242,6 @@ tout accepter et continuer
 tout accepter et fermer
 tout autorizer
 va bene
-vicino
 yes agreed
 yes, continue
 yes, i accept

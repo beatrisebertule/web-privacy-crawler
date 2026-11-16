@@ -2,6 +2,7 @@
 # shared separately. The resume lists are per machine too.
 crawl_data_*/
 crawled_*.txt
+consent_clicks_*.csv
 crawled_list.txt
 results/*
 

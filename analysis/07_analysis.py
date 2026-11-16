@@ -15,15 +15,19 @@ from crawler import (
     listed_categories,
     load_disconnect_categories,
 )
+from final_page import final_page_host
 
 OUTDIR = ROOT / "results"
 
 def third_party_domains(har):
     """Returns the set of third party domains (eTLD+1) a page sent requests to"""
-    first_party = get_fld(har.stem.split("_")[0], fix_protocol=True, fail_silently=True)
-    
+    website = har.stem.split("_")[0]
+
     with open(har, encoding="utf-8") as f:
         har = json.load(f)
+
+    # First party is the page after redirects, not the file name
+    first_party = get_fld(final_page_host(har, website), fix_protocol=True, fail_silently=True)
 
     domains = set()
 

@@ -1,5 +1,5 @@
 """
-Resume list. A crashed crawl must not re-crawl finished sites, and each mode keeps its own list.
+Resume list. A crashed crawl must not re-crawl finished sites, and each mode has its own list.
 
 Everything here is plain file logic. No browser needed.
 """
@@ -62,6 +62,20 @@ def test_site_list_skips_header_and_blank_rows(tmp_path: Path) -> None:
     )
 
     assert read_site_list(site_list_path) == [("ru.nl", "nl"), ("mit.edu", "us")]
+
+
+def test_site_list_strips_spaces_around_values(tmp_path: Path) -> None:
+    site_list_path = tmp_path / "sites.csv"
+    site_list_path.write_text("domain,country,university\n vu.nl , nl ,VU\n", encoding="utf-8")
+
+    assert read_site_list(site_list_path) == [("vu.nl", "nl")]
+
+
+def test_site_list_with_only_header_is_empty(tmp_path: Path) -> None:
+    site_list_path = tmp_path / "sites.csv"
+    site_list_path.write_text("domain,country,university\n", encoding="utf-8")
+
+    assert read_site_list(site_list_path) == []
 
 
 def test_repo_site_list_has_thirty_sites_ten_per_country() -> None:

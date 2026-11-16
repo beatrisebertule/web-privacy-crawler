@@ -10,9 +10,14 @@ import statistics
 
 from tld import get_fld
 
+from final_page import final_page_host
+
 ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
 ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
 OUTDIR = "results"
+# Q2 reads Q1's per-website CSV. Names here must differ from it.
+METRICS_CSV = "q4_per_website_metrics_desktop.csv"
+SUMMARY_CSV = "q4_summary_desktop.csv"
 
 TLD_COUNTRY = {"edu": "us", "nl": "nl", "uk": "uk"}
 
@@ -188,7 +193,7 @@ if __name__ == "__main__":
         
         domain = domain_from_filename(path, mode)          # return a domain name (strip directory path away)
         country = country_from_domain(domain)
-        res = analyse_har(har, domain, dmap)            # analyse each har file
+        res = analyse_har(har, final_page_host(har, domain), dmap)   # first party is the page after redirects
         res["website"] = domain
         res["country"] = country
 
@@ -197,7 +202,7 @@ if __name__ == "__main__":
     os.makedirs(OUTDIR, exist_ok=True)
 
     # create result CSV file 
-    csv_path = os.path.join(OUTDIR, "per_website_metrics.csv")
+    csv_path = os.path.join(OUTDIR, METRICS_CSV)
     with open(csv_path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["country", "website", "requests", "tp_requests",
@@ -208,10 +213,10 @@ if __name__ == "__main__":
     print(f"\nWrote {csv_path} ({len(all_rows)} rows)")
 
 
-    summary_path = os.path.join(OUTDIR, "summary.csv")
+    summary_path = os.path.join(OUTDIR, SUMMARY_CSV)
     with open(summary_path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
-        w.writerow(["country", "country", "metric", "min", "median", "max"])
+        w.writerow(["country", "metric", "min", "median", "max"])
         for country in ["nl", "uk", "us"]:
             for metric in METRICS:
                 vals = [row[metric] for row in all_rows if row["country"] == country]
