@@ -681,7 +681,7 @@ def visit_site(
     :param categories_by_host: output of `load_disconnect_categories`. Required in block mode,
         ignored in the others.
     :param close_words: close phrases, `close_words.txt` unless given
-    :return: What happened. `error` is set and the rest best effort if the visit threw.
+    :return: Visit result, with `error` set if the visit failed partway
     :rtype: VisitResult
     """
     # Programming error, not a site failure. Raised before anything is written.
