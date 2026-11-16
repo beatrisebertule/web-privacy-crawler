@@ -99,7 +99,7 @@ def test_ignore_mode_writes_no_post_consent_screenshot_and_never_clicks(
 
 
 def png_size(png_path: Path) -> tuple[int, int]:
-    # Width and height sit at bytes 16 to 24 of a PNG header.
+    # Width and height are bytes 16 to 24 of a PNG header.
     header = png_path.read_bytes()[16:24]
     return int.from_bytes(header[:4], "big"), int.from_bytes(header[4:], "big")
 

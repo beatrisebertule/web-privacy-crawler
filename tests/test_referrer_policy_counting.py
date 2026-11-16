@@ -196,7 +196,7 @@ def test_csv_one_sorted_row_per_site_with_lf(tmp_path: Path) -> None:
 
     # Read bytes, since text mode turns "\r\n" into "\n" and hides it.
     assert csv_path.read_bytes() == (
-        b"website,country,no_referrer,no_referrer_on_final_page,effective_policies,no_referrer_overridden\n"
+        b"Website,Country,No-referrer,No-referrer on final page,Effective policies,No-referrer overridden\n"
         b"cam.ac.uk,uk,no,no,origin,yes\n"
         b"ru.nl,nl,yes,yes,no-referrer,no\n"
         b"vu.nl,nl,no,no,origin strict-origin-when-cross-origin,no\n"

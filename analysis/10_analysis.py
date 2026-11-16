@@ -255,7 +255,13 @@ def write_ranking_csv(ranking: list[FeatureRank], csv_path: Path) -> None:
     with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
         # Default terminator is "\r\n" on every OS.
         writer = csv.writer(csv_file, lineterminator="\n")
-        writer.writerow(["rank", "feature", "websites", "websites_on_final_page"])
+        # Permission name and website count use the assignment's names for the Q10 table.
+        writer.writerow([
+            "Rank",
+            "Permission name",
+            "Number of distinct websites where this permission was disabled",
+            "Websites disabling it on the final page",
+        ])
         for position, rank in enumerate(ranking, start=1):
             writer.writerow([position, rank.feature, rank.websites, rank.websites_on_final_page])
 
@@ -343,7 +349,7 @@ def run(crawl_directory: Path, results_directory: Path, site_list: frozenset[str
 
     :param crawl_directory: folder of `.har` files
     :param results_directory: where the CSV goes
-    :param site_list: domains the crawl should hold, a mismatch prints a warning
+    :param site_list: domains the crawl should cover
     :return: 0 on success, 1 if crawl data can't be analyzed and no CSV is written
     """
     observations = []

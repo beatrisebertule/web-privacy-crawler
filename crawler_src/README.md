@@ -59,8 +59,8 @@ from `accept_words.txt`.
 
 The `block` crawl blocks a request when its hostname is listed in Disconnect's `services.json`
 under Advertising, Analytics, Social, FingerprintingInvasive, or FingerprintingGeneral (or is a
-subdomain of a listed hostname). `stats.g.doubleclick.net` is blocked, `doubleclick.net` is
-listed. `adservice.google.com` is blocked, it is listed itself. `www.google.com` is not.
+subdomain of a listed hostname). `stats.g.doubleclick.net` is blocked because `doubleclick.net`
+is listed. `adservice.google.com` is blocked because it's listed itself. `www.google.com` is not.
 
 Matching is on hostname, not on eTLD+1. For the listed hostnames, some are subdomains and their eTLD+1 is not included: `adservice.google.com` without `google.com`,
 `ads.yahoo.com` without `yahoo.com`. Trying to match eTLD+1 would fail to catch those.
@@ -71,8 +71,8 @@ and gets through. The analysis counts third parties by eTLD+1 (as per assignment
 "domain". A request like that still counts as third party.
 
 `services.json` in this folder is a copy of Disconnect's list, downloaded 2026-10-30 from
-github.com/disconnectme/disconnect-tracking-protection at commit 5ec90f1b9691. (No download
-at crawl time.)
+github.com/disconnectme/disconnect-tracking-protection at commit 5ec90f1b9691. The crawler
+doesn't download it at crawl time.
 
 A blocked request is still in the HAR, with status -1 and `_failureText`
 `net::ERR_BLOCKED_BY_CLIENT`. Analysis drops it just like any other request with no response.

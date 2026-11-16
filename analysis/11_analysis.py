@@ -32,13 +32,14 @@ CRAWL_DIRECTORY = ROOT / "crawl_data_desktop"
 RESULTS_DIRECTORY = ROOT / "results"
 SITE_LIST_PATH = ROOT / "sites.csv"
 CSV_NAME = "q11_referrer_policy_no_referrer_desktop.csv"
+# First two are the assignment's column names for the Q11 table.
 CSV_COLUMNS = [
-    "website",
-    "country",
-    "no_referrer",
-    "no_referrer_on_final_page",
-    "effective_policies",
-    "no_referrer_overridden",
+    "Website",
+    "Country",
+    "No-referrer",
+    "No-referrer on final page",
+    "Effective policies",
+    "No-referrer overridden",
 ]
 
 REFERRER_POLICY_HEADER = "referrer-policy"
@@ -84,7 +85,7 @@ def parse_referrer_policy(header_values: list[str]) -> ReferrerPolicyHeader:
     example: ["no-referrer, strict-origin-when-cross-origin"] -> effective strict-origin-when-cross-origin
 
     :param header_values: every Referrer-Policy value on one response, in order
-    :return: Effective and listed policies, both empty if no header.
+    :return: Effective and listed policies. With no header, effective is None and listed is empty.
     """
     # Repeated header lines read the same as one comma-separated line.
     tokens = (

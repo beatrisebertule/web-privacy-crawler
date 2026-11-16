@@ -1,7 +1,7 @@
 """
 Received first-party responses from crawl HAR files.
 
-Q10 and Q11 read headers from first-party responses only.
+Q10 and Q11 read headers from first-party responses only. Q12 reads their hosts.
 
 Received: HAR status above 0. Drops requests with no response, keeps 404s.
 First party: same eTLD+1 as resulting page after redirects.
@@ -75,7 +75,7 @@ def first_party_responses(har: dict, website: str) -> Iterator[dict]:
     Find received first-party entries of one visit, in HAR order.
 
     :param har: parsed HAR file
-    :param website: site list entry, first party if HAR has no entries
+    :param website: site list entry, used as first party if HAR has no entries
     :return: HAR entries
     """
     page_host = final_page_host(har, website)

@@ -208,7 +208,7 @@ def test_csv_has_lf_line_endings_and_full_ranking(tmp_path: Path) -> None:
     data = csv_path.read_bytes()
     assert b"\r" not in data
     assert data.decode("utf-8").splitlines() == [
-        "rank,feature,websites,websites_on_final_page",
+        "Rank,Permission name,Number of distinct websites where this permission was disabled,Websites disabling it on the final page",
         "1,a,7,0",
         "2,b,6,0",
         "3,c,5,0",
@@ -303,7 +303,7 @@ def test_run_end_to_end_on_tmp_crawl(capsys: pytest.CaptureFixture[str], tmp_pat
 
     csv_lines = (tmp_path / "results" / q10.CSV_NAME).read_text(encoding="utf-8").splitlines()
     assert csv_lines == [
-        "rank,feature,websites,websites_on_final_page",
+        "Rank,Permission name,Number of distinct websites where this permission was disabled,Websites disabling it on the final page",
         "1,camera,2,2",
         "2,usb,1,1",
     ]
@@ -317,7 +317,7 @@ def test_run_warns_on_site_mismatch_with_equal_count(
     capsys: pytest.CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
-    # vu.nl's HAR is missing and a stray example.org.har stands in, so the counts match.
+    # vu.nl's HAR is missing, but a stray example.org.har makes the site counts equal.
     crawl = tmp_path / "crawl_data_mobile"
     crawl.mkdir()
     write_har(crawl, "ru.nl", make_har(make_entry("https://www.ru.nl/", headers=policy("camera=()"))))

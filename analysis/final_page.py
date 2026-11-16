@@ -17,7 +17,7 @@ def final_page_url(har: dict) -> str | None:
     example: glasgow.ac.uk HAR -> "https://www.gla.ac.uk/"
 
     :param har: parsed HAR file
-    :return: URL of the last page in the chain, or None for a HAR with no entries.
+    :return: URL of the last page in the chain, or None if no entries.
     :rtype: str | None
     """
     entries = har.get("log", {}).get("entries", [])

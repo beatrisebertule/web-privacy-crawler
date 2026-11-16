@@ -2,7 +2,7 @@
 Tests that `parse_referrer_policy` agrees with Chromium on each header.
 
 Page server sends each case's Referrer-Policy. Page loads one image from its own server and one from a second server.
-Some policies send the same pair of `Referer` values for the two images, which this can't tell apart.
+Test can't tell apart policies that send the same pair of `Referer` values for the two images.
 Q11 only cares about `no-referrer`, and that sends nothing to either image.
 """
 

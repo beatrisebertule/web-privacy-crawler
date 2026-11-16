@@ -49,7 +49,7 @@ ACCEPT_WORDS_PATH = REPO_ROOT / "accept_words.txt"
 MOBILE_DEVICE_NAME = "Pixel 10"
 
 # Tracker blocking
-# Copy of Disconnect's list sits next to this file. Source and date in README.
+# Copy of Disconnect's list is in this folder. Source and date in README.
 DISCONNECT_SERVICES_PATH = Path(__file__).resolve().parent / "services.json"
 BLOCKED_CATEGORIES = frozenset({
     "Advertising",
@@ -71,7 +71,7 @@ CLICKABLE_SELECTOR = "button, a, [role=button], input[type=button], input[type=s
 CLICK_TIMEOUT_MILLISECONDS = 3000
 
 # Words that mark a button as a refusal or a settings link, matched whole against the
-# normalized button text. Keeps a substring match on "accept" off "accept necessary only".
+# normalized button text. Stops a substring match on "accept" from picking "accept necessary only".
 REFUSAL_WORDS = (
     "necessary", "essential", "only", "required",
     "reject", "decline", "deny", "refuse", "disagree",
@@ -128,7 +128,7 @@ class VisitResult:
     Outcome of one visit. `error` is None on success.
 
     `first_attempt_error` is set when the bare domain never loaded and the visit was retried
-    with www. Seen on yale.edu 2026-10-30, one of its five addresses served its host's
+    with www. Seen on yale.edu 2026-10-30. One of its five addresses served its host's
     certificate instead of one for yale.edu.
     """
 
@@ -190,7 +190,7 @@ def read_site_list(site_list_path: Path) -> list[tuple[str, str]]:
     First row is a header. Empty and malformed rows are skipped.
 
     :param site_list_path: CSV with `domain,country,...` per line
-    :return: `(website_domain, country_code)` pairs in file order, country lowercased
+    :return: `(website_domain, country_code)` pairs in file order, with country lowercased
     :rtype: list[tuple[str, str]]
     """
     sites_to_crawl = []
@@ -226,7 +226,7 @@ def read_crawled_list(crawled_list_path: Path) -> set[tuple[str, str]]:
     """
     Read the resume list for one mode.
 
-    :param crawled_list_path: CSV written by `add_to_crawled_list`, may not exist yet
+    :param crawled_list_path: CSV written by `add_to_crawled_list` (may not exist yet)
     :return: `(website_domain, country_code)` pairs already finished. Empty if no file.
     :rtype: set[tuple[str, str]]
     """
@@ -330,7 +330,7 @@ def collect_clickables(page: Page) -> list[tuple[Locator, str]]:
     description under the label, and the label is what a visitor reads.
 
     :param page: page after load, frames included
-    :return: `(locator, normalized_label)` pairs in frame and document order, empty labels dropped
+    :return: `(locator, normalized_label)` pairs in frame and document order, without empty labels
     :rtype: list[tuple[Locator, str]]
     """
     clickables = []
@@ -385,7 +385,7 @@ def choose_accept_button(
 
 def accept_cookies(page: Page, accept_words: list[str]) -> bool:
     """
-    Click the consent dialog's accept button, in whichever frame it lives.
+    Click the consent dialog's accept button, whichever frame it's in.
 
     A hidden or unclickable best match is dropped and the next best tried.
 
@@ -450,7 +450,7 @@ def scroll_down(
 
 def load_disconnect_categories(services_path: Path) -> dict[str, frozenset[str]]:
     """
-    Read Disconnect's `services.json` into hostname to categories.
+    Read Disconnect's `services.json` into a map from hostname to categories.
 
     Entity entries also hold flags like `"session-replay": "true"`. Only list values are hostnames.
 
@@ -564,7 +564,7 @@ def visit_site(
     :param waits: sleeps between steps, assignment defaults
     :param categories_by_host: output of `load_disconnect_categories`. Required in block mode,
         ignored in the others.
-    :return: What happened. `error` is set and the rest best effort if the visit threw.
+    :return: What happened. If the visit threw, `error` is set and the other fields show how far it got.
     :rtype: VisitResult
     """
     # Programming error, not a site failure. Raised before anything is written.
@@ -612,7 +612,7 @@ def visit_site(
         page.close()
         context.close()
         if video_path:
-            # Overwrites a failed earlier attempt's video. Plain rename fails on Windows then.
+            # Overwrites a failed earlier attempt's video. Plain rename fails on Windows if the file exists.
             Path(video_path).replace(output_directory / f"{site_name}.webm")
     return result
 
