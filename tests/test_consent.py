@@ -180,6 +180,6 @@ def test_clicks_button_inside_iframe(
     clicked = accept_cookies(fresh_page, accept_words)
 
     assert clicked
-    # Button lives in the child frame.
+    # Button is in the child frame.
     child_frame = next(frame for frame in fresh_page.frames if frame.url.endswith("banner_button.html"))
     assert child_frame.title() == "clicked:Accept all cookies"
