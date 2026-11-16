@@ -14,6 +14,7 @@ from crawler import (
     listed_categories,
     load_disconnect_categories,
 )
+from plot_text import CRAWL_AXIS_LABEL
 
 OUTDIR = ROOT / "results"
 
@@ -48,7 +49,7 @@ def plot(counts, category, exercise):
     ax.margins(y=0.1)
  
     ax.set_title(f"Crawl Comparison ({exercise})")
-    ax.set_xlabel("Crawl Type")
+    ax.set_xlabel(CRAWL_AXIS_LABEL)
     ax.set_ylabel(f"# sites with {category.lower()}")
     ax.grid(axis="y", alpha=0.4)
     ax.set_axisbelow(True)

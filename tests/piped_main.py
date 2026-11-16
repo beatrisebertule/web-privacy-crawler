@@ -1,5 +1,8 @@
 """
-Runs an analysis script's `main` in a fresh Python with stdout piped.
+Runs an analysis script in a fresh Python with stdout piped.
+
+`run_main_piped` calls a script's `main`. `run_script_piped` runs a script by path, for the
+scripts that have no `main`.
 
 Stdout encoding is forced to cp1252, the Windows default for piped output, so the tests behave the
 same on every OS.
@@ -49,11 +52,38 @@ def run_main_piped(
         results=str(results_directory),
         site_list=str(site_list_path),
     )
-    environment = {**os.environ, "PYTHONIOENCODING": "cp1252"}
-    environment.pop("PYTHONUTF8", None)
     return subprocess.run(
         [sys.executable, "-c", code],
         capture_output=True,
-        env=environment,
+        env=_piped_environment(),
         timeout=120,
     )
+
+
+def run_script_piped(
+    script: str,
+    arguments: list[str],
+    working_directory: Path,
+) -> subprocess.CompletedProcess[bytes]:
+    """
+    Run an analysis script by path, from the given working directory.
+
+    :param script: file name in `analysis/`, such as "02_analysis.py"
+    :param arguments: command-line arguments after the script path
+    :param working_directory: folder the script's relative paths resolve against
+    :return: Finished process with stdout and stderr as bytes.
+    """
+    return subprocess.run(
+        [sys.executable, str(ANALYSIS_DIRECTORY / script), *arguments],
+        capture_output=True,
+        cwd=working_directory,
+        env=_piped_environment(),
+        timeout=120,
+    )
+
+
+def _piped_environment() -> dict[str, str]:
+    # `PYTHONUTF8` would override the forced cp1252
+    environment = {**os.environ, "PYTHONIOENCODING": "cp1252"}
+    environment.pop("PYTHONUTF8", None)
+    return environment
