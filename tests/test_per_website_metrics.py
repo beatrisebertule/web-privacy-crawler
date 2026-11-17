@@ -262,12 +262,12 @@ def test_q2_with_header_only_warns_for_every_crawl(tmp_path: Path) -> None:
     assert stderr.count("Q2 warning") == len(q2.MODES)
 
 
-def test_fmt_formats_numbers_and_nan() -> None:
-    assert q2.fmt(3.0) == "3"
-    assert q2.fmt(2.5) == "2.5"
-    assert q2.fmt(float("nan")) == "-"
+def test_format_stat_formats_numbers_and_nan() -> None:
+    assert q2.format_stat(3.0) == "3"
+    assert q2.format_stat(2.5) == "2.5"
+    assert q2.format_stat(float("nan")) == "-"
     # Block crawl can have 0 third-party requests. 0 is a value, not a missing crawl.
-    assert q2.fmt(0.0) == "0"
+    assert q2.format_stat(0.0) == "0"
 
 
 def test_q1_and_q2_agree_on_crawls_and_metrics() -> None:
