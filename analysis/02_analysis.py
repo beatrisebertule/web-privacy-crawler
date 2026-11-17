@@ -25,11 +25,11 @@ class MetricsFileError(ValueError):
     """Q1's per-website CSV is missing or lacks a column Q2 reads."""
 
 
-def fmt(x):
+def format_stat(value):
     """Integers as ints; half-values (medians) keep one decimal."""
-    if np.isnan(x):  # crawl with no rows
+    if np.isnan(value):  # crawl with no rows
         return "-"
-    return str(int(x)) if float(x) == int(x) else f"{x:.1f}"
+    return str(int(value)) if float(value) == int(value) else f"{value:.1f}"
 
 
 def load(in_csv):
@@ -64,10 +64,10 @@ def load(in_csv):
 
 
 def stats(vals):
-    a = np.array(vals, dtype=float)
-    if a.size == 0:
+    values = np.array(vals, dtype=float)
+    if values.size == 0:
         return {"Min": float("nan"), "Median": float("nan"), "Max": float("nan")}
-    return {"Min": a.min(), "Median": np.median(a), "Max": a.max()}
+    return {"Min": values.min(), "Median": np.median(values), "Max": values.max()}
 
 
 if __name__ == "__main__":
@@ -93,7 +93,7 @@ if __name__ == "__main__":
             row = [label]
             for m in MODES:
                 s = summ[key][m]
-                row += [fmt(s["Min"]), fmt(s["Median"]), fmt(s["Max"])]
+                row += [format_stat(s["Min"]), format_stat(s["Median"]), format_stat(s["Max"])]
             w.writerow(row)
 
     long = os.path.join(OUTDIR, "02_summary_long.csv")
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         for key, label in METRICS:
             for m in MODES:
                 s = summ[key][m]
-                w.writerow([LABELS[m], label, fmt(s["Min"]), fmt(s["Median"]), fmt(s["Max"])])
+                w.writerow([LABELS[m], label, format_stat(s["Min"]), format_stat(s["Median"]), format_stat(s["Max"])])
 
     for m in MODES:
         p = os.path.join(OUTDIR, f"summary_{m}.csv")
@@ -112,19 +112,19 @@ if __name__ == "__main__":
             w.writerow([f"Metric ({LABELS[m]}, n={counts[m]})", "Min", "Median", "Max"])
             for key, label in METRICS:
                 s = summ[key][m]
-                w.writerow([label, fmt(s["Min"]), fmt(s["Median"]), fmt(s["Max"])])
+                w.writerow([label, format_stat(s["Min"]), format_stat(s["Median"]), format_stat(s["Max"])])
 
     print("\nSummary (Min / Median / Max) per crawl   "
           f"[n={', '.join(f'{LABELS[m]} {counts[m]}' for m in MODES)}]\n")
-    mw = max(len(l) for _, l in METRICS)
-    print(" " * mw + "   " + "   ".join(f"{LABELS[m]:^20}" for m in MODES))
-    print(" " * mw + "   " + "   ".join(f"{'Min':>5} {'Med':>6} {'Max':>5}" for _ in MODES))
+    label_width = max(len(l) for _, l in METRICS)
+    print(" " * label_width + "   " + "   ".join(f"{LABELS[m]:^20}" for m in MODES))
+    print(" " * label_width + "   " + "   ".join(f"{'Min':>5} {'Med':>6} {'Max':>5}" for _ in MODES))
     for key, label in METRICS:
         cells = []
         for m in MODES:
             s = summ[key][m]
-            cells.append(f"{fmt(s['Min']):>5} {fmt(s['Median']):>6} {fmt(s['Max']):>5}")
-        print(f"{label:<{mw}}   " + "   ".join(cells))
+            cells.append(f"{format_stat(s['Min']):>5} {format_stat(s['Median']):>6} {format_stat(s['Max']):>5}")
+        print(f"{label:<{label_width}}   " + "   ".join(cells))
 
     print(f"\nWrote {wide}")
     print(f"Wrote {long}")

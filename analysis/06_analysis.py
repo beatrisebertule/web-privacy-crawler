@@ -99,9 +99,9 @@ def exclusive_ranked(a_sites, b_domains):
     return rows
 
 
-def render_csv(a_rows, b_rows, path):
+def render_csv(desktop_rows, mobile_rows, path):
     """Export desktop-only and mobile-only domains side by side as CSV."""
-    n = max(len(a_rows), len(b_rows))
+    n = max(len(desktop_rows), len(mobile_rows))
 
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
@@ -116,34 +116,34 @@ def render_csv(a_rows, b_rows, path):
 
         # Write both ranked lists side by side
         for i in range(n):
-            ad, ac = a_rows[i] if i < len(a_rows) else ("", "")
-            bd, bc = b_rows[i] if i < len(b_rows) else ("", "")
+            desktop_domain, desktop_count = desktop_rows[i] if i < len(desktop_rows) else ("", "")
+            mobile_domain, mobile_count = mobile_rows[i] if i < len(mobile_rows) else ("", "")
 
-            w.writerow([ad, ac, bd, bc])
+            w.writerow([desktop_domain, desktop_count, mobile_domain, mobile_count])
 
 
 if __name__ == "__main__":
-    a, b = CRAWL_DESKTOP, CRAWL_MOBILE
-    da, db = DIR_DESKTOP, DIR_MOBILE
+    desktop_crawl, mobile_crawl = CRAWL_DESKTOP, CRAWL_MOBILE
+    desktop_dir, mobile_dir = DIR_DESKTOP, DIR_MOBILE
 
-    for d in (da, db):
+    for d in (desktop_dir, mobile_dir):
         if not os.path.isdir(d):
             sys.exit(f"ERROR: crawl folder not found: {d}")
             
-    a_sites = collect_tp_domains(da) # dictionary
-    b_sites = collect_tp_domains(db) # dictionary
+    desktop_sites = collect_tp_domains(desktop_dir) # dictionary
+    mobile_sites = collect_tp_domains(mobile_dir) # dictionary
     
-    a_domains, b_domains = set(a_sites), set(b_sites) # return a set of unique keys - 3rd party domains contacted
-    print(f"\nDistinct third-party domains: {a.capitalize()}={len(a_domains)}, "
-          f"{b.capitalize()}={len(b_domains)}, shared={len(a_domains & b_domains)}\n")
+    desktop_domains, mobile_domains = set(desktop_sites), set(mobile_sites) # return a set of unique keys - 3rd party domains contacted
+    print(f"\nDistinct third-party domains: {desktop_crawl.capitalize()}={len(desktop_domains)}, "
+          f"{mobile_crawl.capitalize()}={len(mobile_domains)}, shared={len(desktop_domains & mobile_domains)}\n")
     
     # return contacted 3rd party domains that were not present in teh other crawl mode
-    a_only = exclusive_ranked(a_sites, b_domains)   # a) desktop-only
-    b_only = exclusive_ranked(b_sites, a_domains)   # b) mobile-only
+    desktop_only = exclusive_ranked(desktop_sites, mobile_domains)   # a) desktop-only
+    mobile_only = exclusive_ranked(mobile_sites, desktop_domains)   # b) mobile-only
 
     os.makedirs(OUTDIR, exist_ok=True)
     # full ranked CSVs
-    for name, rows in ((a, a_only), (b, b_only)):
+    for name, rows in ((desktop_crawl, desktop_only), (mobile_crawl, mobile_only)):
         p = os.path.join(OUTDIR, f"exclusive_{name}_only.csv")
         with open(p, "w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
@@ -158,10 +158,10 @@ if __name__ == "__main__":
         for d, c in rows:
             print("  " + d.ljust(34) + str(c))
             
-    show(f"a) Contacted in {a.capitalize()} but NEVER in {b.capitalize()}", a_only)
-    show(f"b) Contacted in {b.capitalize()} but NEVER in {a.capitalize()}", b_only)
+    show(f"a) Contacted in {desktop_crawl.capitalize()} but NEVER in {mobile_crawl.capitalize()}", desktop_only)
+    show(f"b) Contacted in {mobile_crawl.capitalize()} but NEVER in {desktop_crawl.capitalize()}", mobile_only)
 
     csv_path = os.path.join(OUTDIR, "06_exclusive_domains.csv")
-    render_csv(a_only, b_only, csv_path)
+    render_csv(desktop_only, mobile_only, csv_path)
 
     print(f"Wrote {csv_path}")
