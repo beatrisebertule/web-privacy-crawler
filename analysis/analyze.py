@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ANALYSIS_DIR = Path(__file__).resolve().parent
-OUTDIR = "results"
+OUTDIR = ANALYSIS_DIR.parent / "results"
 
 if __name__=="__main__":
     OUTDIR.mkdir(parents=True, exist_ok=True)

@@ -24,7 +24,7 @@ sys.path.insert(0, str(TESTS_DIRECTORY.parent / "crawler_src"))
 # Analysis scripts import siblings by name, tests need folder on same path
 sys.path.insert(0, str(TESTS_DIRECTORY.parent / "analysis"))
 
-from crawler import WaitSchedule  # noqa: E402
+from crawl import WaitSchedule  # noqa: E402
 
 FIXTURES_DIRECTORY = TESTS_DIRECTORY / "fixtures"
 

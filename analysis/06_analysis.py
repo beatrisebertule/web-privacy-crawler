@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from collections import defaultdict
+from pathlib import Path
 from urllib.parse import urlsplit
 from tld import get_fld
 import pprint
@@ -11,11 +12,12 @@ import matplotlib.pyplot as plt
 
 from final_page import final_page_host
 
-DIR_DESKTOP = "./crawl_data_desktop"
-DIR_MOBILE = "./crawl_data_mobile"
+ROOT = Path(__file__).resolve().parent.parent
+DIR_DESKTOP = ROOT / "crawl_data_desktop"
+DIR_MOBILE = ROOT / "crawl_data_mobile"
 CRAWL_DESKTOP = "desktop"
 CRAWL_MOBILE = "mobile"
-OUTDIR = "results"
+OUTDIR = ROOT / "results"
 
 
 def fld(host):

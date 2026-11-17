@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from collections import OrderedDict
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import matplotlib
@@ -12,9 +13,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tld import get_fld
 
-ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
-ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
-OUTDIR = "results"
+from final_page import final_page_host
+from plot_text import CRAWL_AXIS_LABEL
+
+ROOT = Path(__file__).resolve().parent.parent  # repo root, holds the crawl_data_<mode> dirs
+ENTITIES = ROOT / "crawler_src" / "entities.json"      # disconnect entities list (for metric d)
+OUTDIR = ROOT / "results"
 
 # the four crawl modes, in X-axis order (these are the <mode> in crawler_data_<mode>)
 MODES = ["desktop", "mobile", "block", "ignore"]
@@ -155,7 +159,7 @@ def har_files(folder):
     return sorted(glob.glob(os.path.join(folder, "**", "*.har"), recursive=True))
 
 
-def boxplot(ax, data_by_mode, title):
+def boxplot(ax, data_by_mode, metric_label):
     data = [data_by_mode.get(m, []) for m in MODES]
     bp = ax.boxplot(data, positions=range(1, len(MODES) + 1), showfliers=True,
                     patch_artist=True,
@@ -169,7 +173,9 @@ def boxplot(ax, data_by_mode, title):
         patch.set_facecolor(col)
         patch.set_alpha(0.65)
     # ax.set_title(title, fontsize=11)
-    ax.set_ylabel("count per website")
+    # Single plots have no title of their own. Metric name on Y axis.
+    ax.set_xlabel(CRAWL_AXIS_LABEL)
+    ax.set_ylabel(metric_label)
     ax.grid(axis="y", linestyle=":", alpha=0.5)
     ns = [len(data_by_mode.get(m, [])) for m in MODES]
     ax.set_xticks(range(1, len(MODES) + 1))
@@ -205,7 +211,7 @@ if __name__ == "__main__":
                 continue
             
             domain = domain_from_filename(path, m)          # return a domain name (strip directory path away)
-            res = analyse_har(har, domain, dmap)            # analyse each har file
+            res = analyse_har(har, final_page_host(har, domain), dmap)   # first party is the page after redirects
             res["website"] = domain
             records.append(res)
 
@@ -255,7 +261,7 @@ if __name__ == "__main__":
     # combine all boxplots in one plot
     fig, axes = plt.subplots(2, 2, figsize=(13, 10))
     for ax, (k, label) in zip(axes.flat, METRICS.items()):
-        boxplot(ax, per_mode[k], f"({'abcd'[list(METRICS).index(k)]}) {label}")
+        boxplot(ax, per_mode[k], label)
     fig.suptitle("Tracking metrics across crawls", fontsize=14)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     p = os.path.join(OUTDIR, "01_boxplots_combined.png")

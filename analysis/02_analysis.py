@@ -1,14 +1,16 @@
 import csv
 import os
 import sys
+from pathlib import Path
 
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-IN_CSV = "./results/01_per_website_metrics.csv"           # written by 01_analysis.py
-OUTDIR = "results"
+ROOT = Path(__file__).resolve().parent.parent
+OUTDIR = ROOT / "results"
+IN_CSV = OUTDIR / "01_per_website_metrics.csv"           # written by 01_analysis.py
 MODES = ["desktop", "mobile", "block", "ignore"]           # column order
 LABELS = {"desktop": "Desktop", "mobile": "Mobile",
           "block": "Block", "ignore": "Ignore"}

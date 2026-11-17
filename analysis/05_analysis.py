@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "crawler_src"))
-from crawler import (
+from crawl import (
     DISCONNECT_SERVICES_PATH,
     listed_categories,
     load_disconnect_categories,
@@ -73,6 +73,7 @@ def count_sites_with_category(category, sites):
     return count
 
 if __name__ == "__main__":
+    OUTDIR.mkdir(exist_ok=True)
     categories_by_host = load_disconnect_categories(DISCONNECT_SERVICES_PATH)
 
     ignore_dir = ROOT / "crawl_data_ignore"

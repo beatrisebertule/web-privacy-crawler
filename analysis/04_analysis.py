@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from collections import OrderedDict
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import statistics
@@ -12,9 +13,9 @@ from tld import get_fld
 
 from final_page import final_page_host
 
-ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
-ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
-OUTDIR = "results"
+ROOT = Path(__file__).resolve().parent.parent  # repo root, holds the crawl_data_<mode> dirs
+ENTITIES = ROOT / "crawler_src" / "entities.json"      # disconnect entities list (for metric d)
+OUTDIR = ROOT / "results"
 # Q2 reads Q1's per-website CSV. Names here must differ from it.
 METRICS_CSV = "04_per_website_metrics_desktop.csv"
 SUMMARY_CSV = "04_summary_desktop.csv"

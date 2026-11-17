@@ -15,7 +15,7 @@ from playwright.sync_api import Browser, Playwright
 
 # Local package imports
 from conftest import FIXTURES_DIRECTORY, NO_WAITS
-from crawler import (
+from crawl import (
     ACCEPT_WORDS_PATH,
     CONSENT_CLICKS_HEADER,
     CrawlMode,

@@ -6,10 +6,10 @@ Student Names: Serge Airapetjan, Beatrise Bertule, Nolan Colter, Daan Smeets
 Student Numbers: s1038921, s1105119, s1167654, sXXXXXXX
 
 Usage:
-    python crawler_src/crawler.py -m desktop -l sites.csv
-    python crawler_src/crawler.py -m mobile -l sites.csv
-    python crawler_src/crawler.py -m block -l sites.csv
-    python crawler_src/crawler.py -m ignore -l sites.csv
+    python crawl.py -m desktop -l sites.csv
+    python crawl.py -m mobile -l sites.csv
+    python crawl.py -m block -l sites.csv
+    python crawl.py -m ignore -l sites.csv
 """
 
 # Standard library imports
@@ -42,12 +42,12 @@ from playwright.sync_api import (
 # Constants
 # *******************************************
 
-# Paths are relative to the repo root, not the working directory.
+# Paths are relative to this file, not the working directory.
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ACCEPT_WORDS_PATH = REPO_ROOT / "accept_words.txt"
+ACCEPT_WORDS_PATH = Path(__file__).resolve().parent / "accept_words.txt"
 # Phrases that just close the banner. They're only tried if no accept phrase matches,
 # because closing a banner isn't consenting to it.
-CLOSE_WORDS_PATH = REPO_ROOT / "close_words.txt"
+CLOSE_WORDS_PATH = Path(__file__).resolve().parent / "close_words.txt"
 
 MOBILE_DEVICE_NAME = "Pixel 10"
 
