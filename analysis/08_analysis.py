@@ -83,9 +83,11 @@ def plot(rows, name, arrow):
     for col in range(4):
         table[0, col].set_text_props(weight="bold")
  
-    out = OUTDIR / f"{name}.png"
+    out = OUTDIR / f"08_{name}.png"
     fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
+    
+    print(f"Wrote OUTDIR/{name}.png")
 
 def number_of_domains(site):
     """Return the number of third-party domains of a (website, no_domains) pair, used to sort the websites"""
@@ -98,5 +100,5 @@ if __name__ == "__main__":
     highest = sorted(sites, key=number_of_domains, reverse=True)[:3] # (a) Top 3 websites with highest distinct 3rd party domain requests
     lowest = sorted(sites, key=number_of_domains)[:3] # (b) Top 3 websites with lowest distinct 3rd party domain requests
  
-    plot(make_table_rows(highest, ranks), "most_third_party_domains_desktop", "↓")
-    plot(make_table_rows(lowest, ranks), "fewest_third_party_domains_desktop", "↑")
+    plot(make_table_rows(highest, ranks), "08_most_third_party_domains_desktop", "↓")
+    plot(make_table_rows(lowest, ranks), "08_fewest_third_party_domains_desktop", "↑")

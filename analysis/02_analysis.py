@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-IN_CSV = "./results/q1_per_website_metrics.csv"           # written by 01_analysis.py
+IN_CSV = "./results/01_per_website_metrics.csv"           # written by 01_analysis.py
 OUTDIR = "results"
 MODES = ["desktop", "mobile", "block", "ignore"]           # column order
 LABELS = {"desktop": "Desktop", "mobile": "Mobile",
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     summ = {key: {m: stats(data[m][key]) for m in MODES} for key, _ in METRICS}
 
     header = ["Metric"] + [f"{LABELS[m]} {s}" for m in MODES for s in STATS]
-    wide = os.path.join(OUTDIR, "summary_table.csv")
+    wide = os.path.join(OUTDIR, "02_summary_table.csv")
     with open(wide, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(header)
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                 row += [fmt(s["Min"]), fmt(s["Median"]), fmt(s["Max"])]
             w.writerow(row)
 
-    long = os.path.join(OUTDIR, "summary_long.csv")
+    long = os.path.join(OUTDIR, "02_summary_long.csv")
     with open(long, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["crawl", "metric", "min", "median", "max"])
@@ -128,5 +128,5 @@ if __name__ == "__main__":
 
     print(f"\nWrote {wide}")
     print(f"Wrote {long}")
-    print(f"Wrote {OUTDIR}/summary_<mode>.csv  (one per crawl)")
-    print(f"Wrote {OUTDIR}/summary_table.png")
+    print(f"Wrote {OUTDIR}/02_summary_<mode>.csv  (one per crawl)")
+    print(f"Wrote {OUTDIR}/02_summary_table.png")

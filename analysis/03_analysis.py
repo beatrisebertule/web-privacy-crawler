@@ -54,7 +54,7 @@ def plot(counts, category, exercise):
     ax.grid(axis="y", alpha=0.4)
     ax.set_axisbelow(True)
 
-    out = OUTDIR / f"crawl_comparison_{category}.png"
+    out = OUTDIR / f"03_crawl_comparison_{category}.png"
     fig.savefig(out, dpi=150)
     plt.close(fig)
 
@@ -97,3 +97,6 @@ if __name__ == "__main__":
 
     plot(advertising_counts, "advertising", "3a")
     plot(analytics_counts, "analytics", "3b")
+    
+    print(f"\nWrote {OUTDIR}/03_crawl_comparison_advertising.png")
+    print(f"Wrote {OUTDIR}/03_crawl_comparison_analytics.png")

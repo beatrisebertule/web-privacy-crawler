@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CRAWL_DIRECTORY = ROOT / "crawl_data_mobile"
 RESULTS_DIRECTORY = ROOT / "results"
 SITE_LIST_PATH = ROOT / "sites.csv"
-CSV_NAME = "q10_permissions_policy_disabled_mobile.csv"
+CSV_NAME = "10_permissions_policy_disabled_mobile.csv"
 TOP_FEATURE_COUNT = 5
 
 PERMISSIONS_POLICY_HEADER = "permissions-policy"
@@ -88,11 +88,6 @@ def parse_permissions_policy(header_values: list[str]) -> PolicyFeatures:
         else:
             named_not_disabled.add(feature)
     return PolicyFeatures(frozenset(disabled), frozenset(named_not_disabled))
-
-
-# *******************************************
-# Counting per website
-# *******************************************
 
 
 class TieBreakLevel(enum.Enum):
@@ -181,11 +176,6 @@ def observe_site(website: str, har: dict) -> SiteObservation:
     return observation
 
 
-# *******************************************
-# Ranking
-# *******************************************
-
-
 def rank_features(observations: list[SiteObservation]) -> list[FeatureRank]:
     """
     Rank disabled features by website count.
@@ -239,11 +229,6 @@ def tie_at_cutoff(ranking: list[FeatureRank], limit: int = TOP_FEATURE_COUNT) ->
     return TieReport(last_kept.websites, tied_total, tied_shown, separated_by)
 
 
-# *******************************************
-# Output
-# *******************************************
-
-
 def write_ranking_csv(ranking: list[FeatureRank], csv_path: Path) -> None:
     """
     Write the full ranking to CSV.
@@ -284,7 +269,7 @@ def print_report(
     """
     first_party_total = sum(site.first_party_response_count for site in observations)
     policy_total = sum(site.permissions_policy_response_count for site in observations)
-    print("Q10: Permissions-Policy features disabled, mobile crawl")
+    print("10: Permissions-Policy features disabled, mobile crawl")
     print(
         f"Examined: {counted(len(observations), 'website')}, "
         f"{counted(first_party_total, 'first-party response')}, "
@@ -335,12 +320,7 @@ def print_report(
     print(f"Feature-Policy only: {', '.join(feature_policy_only) or 'none'}")
     no_first_party = [site.website for site in observations if site.first_party_response_count == 0]
     print(f"No first-party responses: {', '.join(no_first_party) or 'none'}")
-    print(f"CSV: {csv_path}")
-
-
-# *******************************************
-# Entry point
-# *******************************************
+    print(f"Wrote {csv_path}")
 
 
 def run(crawl_directory: Path, results_directory: Path, site_list: frozenset[str]) -> int:

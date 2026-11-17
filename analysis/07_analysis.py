@@ -67,9 +67,12 @@ def plot(rows, crawl):
     for col in range(3):
         table[0, col].set_text_props(weight="bold")
  
-    out = OUTDIR / f"top_domains_{crawl.lower()}.png"
+    out = OUTDIR / f"07_top_domains_{crawl.lower()}.png"
     fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
+    
+    print(f"Wrote {out}")
+    
 
 def domains_of_crawl(folder):
     """Return a list with all the contacted third-party domains per website in a crawl"""
@@ -112,3 +115,4 @@ if __name__ == "__main__":
     plot(top_domains(mobile_domains, categories_by_host), "Mobile")
     plot(top_domains(blocked_domains, categories_by_host), "Block")
     plot(top_domains(ignored_domains, categories_by_host), "Ignore")
+    

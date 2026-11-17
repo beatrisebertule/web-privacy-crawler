@@ -16,8 +16,8 @@ ROOT = "."                         # folder that holds the crawler_data_<mode> d
 ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
 OUTDIR = "results"
 # Q2 reads Q1's per-website CSV. Names here must differ from it.
-METRICS_CSV = "q4_per_website_metrics_desktop.csv"
-SUMMARY_CSV = "q4_summary_desktop.csv"
+METRICS_CSV = "04_per_website_metrics_desktop.csv"
+SUMMARY_CSV = "04_summary_desktop.csv"
 
 TLD_COUNTRY = {"edu": "us", "nl": "nl", "uk": "uk"}
 

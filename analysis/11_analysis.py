@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CRAWL_DIRECTORY = ROOT / "crawl_data_desktop"
 RESULTS_DIRECTORY = ROOT / "results"
 SITE_LIST_PATH = ROOT / "sites.csv"
-CSV_NAME = "q11_referrer_policy_no_referrer_desktop.csv"
+CSV_NAME = "11_referrer_policy_no_referrer_desktop.csv"
 # First two are the assignment's column names for the Q11 table.
 CSV_COLUMNS = [
     "Website",
@@ -99,11 +99,6 @@ def parse_referrer_policy(header_values: list[str]) -> ReferrerPolicyHeader:
     )
 
 
-# *******************************************
-# Counting per website
-# *******************************************
-
-
 @dataclass
 class SiteObservation:
     """
@@ -163,11 +158,6 @@ def observe_site(website: str, country: str, har: dict) -> SiteObservation:
                 observation.no_referrer_on_final_page = True
 
     return observation
-
-
-# *******************************************
-# Output
-# *******************************************
 
 
 def yes_no(value: bool) -> str:
@@ -244,12 +234,7 @@ def print_report(observations: list[SiteObservation], site_list: frozenset[str],
             print(f"  {site.website}: {header_value!r}")
     no_first_party = [site.website for site in by_website if site.first_party_response_count == 0]
     print(f"No first-party responses: {', '.join(no_first_party) or 'none'}")
-    print(f"CSV: {csv_path}")
-
-
-# *******************************************
-# Entry point
-# *******************************************
+    print(f"Wrote {csv_path}")
 
 
 def run(crawl_directory: Path, results_directory: Path, site_countries: dict[str, str]) -> int:

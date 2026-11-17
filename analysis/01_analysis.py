@@ -12,13 +12,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tld import get_fld
 
-from final_page import final_page_host
-from plot_text import CRAWL_AXIS_LABEL
-
 ROOT = "."                         # folder that holds the crawler_data_<mode> dirs
 ENTITIES = "./entities.json"       # disconnect entities list (for metric d)
 OUTDIR = "results"
-METRICS_CSV = "q1_per_website_metrics.csv"  # Q2 reads this
 
 # the four crawl modes, in X-axis order (these are the <mode> in crawler_data_<mode>)
 MODES = ["desktop", "mobile", "block", "ignore"]
@@ -39,7 +35,7 @@ def fld(host):
     if not host:
         return ""
     host = host.strip().lower().rstrip(".")
-    if _is_ip(host):                      # keep IPs as their own "domain"
+    if _is_ip(host): # keep IPs as their own "domain"
         return host
     return get_fld(host, fix_protocol=True, fail_silently=True) or ""
 
@@ -78,10 +74,6 @@ def get_num_requests(har: dict) -> int:
     return len(received)
 
 
-# ----
-# Load Entity map
-# ----
-
 def load_entity_map(path):
     with open(path, "r", encoding="utf-8") as fh:
         data = json.load(fh)
@@ -100,10 +92,6 @@ def entity_of(domain, dmap):
         return dmap[domain]
     return domain if COUNT_UNKNOWN_AS_ENTITY else None
 
-
-# ---
-# Analyze har files
-# ---
 
 def analyse_har(har, first_party, dmap):
     """All four metrics for one already-loaded HAR dict."""
@@ -166,11 +154,8 @@ def domain_from_filename(path, mode):
 def har_files(folder):
     return sorted(glob.glob(os.path.join(folder, "**", "*.har"), recursive=True))
 
-# ---
-# Plot box plots
-# ---
 
-def boxplot(ax, data_by_mode, metric_label):
+def boxplot(ax, data_by_mode, title):
     data = [data_by_mode.get(m, []) for m in MODES]
     bp = ax.boxplot(data, positions=range(1, len(MODES) + 1), showfliers=True,
                     patch_artist=True,
@@ -184,9 +169,7 @@ def boxplot(ax, data_by_mode, metric_label):
         patch.set_facecolor(col)
         patch.set_alpha(0.65)
     # ax.set_title(title, fontsize=11)
-    # Single plots have no title of their own. Metric name on Y axis.
-    ax.set_xlabel(CRAWL_AXIS_LABEL)
-    ax.set_ylabel(metric_label)
+    ax.set_ylabel("count per website")
     ax.grid(axis="y", linestyle=":", alpha=0.5)
     ns = [len(data_by_mode.get(m, [])) for m in MODES]
     ax.set_xticks(range(1, len(MODES) + 1))
@@ -222,7 +205,7 @@ if __name__ == "__main__":
                 continue
             
             domain = domain_from_filename(path, m)          # return a domain name (strip directory path away)
-            res = analyse_har(har, final_page_host(har, domain), dmap)   # first party is the page after redirects
+            res = analyse_har(har, domain, dmap)            # analyse each har file
             res["website"] = domain
             records.append(res)
 
@@ -237,7 +220,7 @@ if __name__ == "__main__":
         print(f"  wrote {jpath}")
 
     # create result CSV file 
-    csv_path = os.path.join(OUTDIR, METRICS_CSV)
+    csv_path = os.path.join(OUTDIR, "01_per_website_metrics.csv")
     with open(csv_path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["crawl", "website", "requests", "tp_requests",
@@ -264,7 +247,7 @@ if __name__ == "__main__":
         fig, ax = plt.subplots(figsize=(7, 5))
         boxplot(ax, per_mode[k], label)
         fig.tight_layout()
-        p = os.path.join(OUTDIR, f"boxplot_{k}.png")
+        p = os.path.join(OUTDIR, f"01_boxplot_{k}.png")
         fig.savefig(p, dpi=150)
         plt.close(fig)
         print(f"Wrote {p}")
@@ -272,10 +255,10 @@ if __name__ == "__main__":
     # combine all boxplots in one plot
     fig, axes = plt.subplots(2, 2, figsize=(13, 10))
     for ax, (k, label) in zip(axes.flat, METRICS.items()):
-        boxplot(ax, per_mode[k], label)
+        boxplot(ax, per_mode[k], f"({'abcd'[list(METRICS).index(k)]}) {label}")
     fig.suptitle("Tracking metrics across crawls", fontsize=14)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
-    p = os.path.join(OUTDIR, "boxplots_combined.png")
+    p = os.path.join(OUTDIR, "01_boxplots_combined.png")
     fig.savefig(p, dpi=150)
     plt.close(fig)
     print(f"Wrote {p}")

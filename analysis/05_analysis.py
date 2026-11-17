@@ -53,7 +53,7 @@ def plot(counts, category, exercise):
     ax.grid(axis="y", alpha=0.4)
     ax.set_axisbelow(True)
 
-    out = OUTDIR / f"location_comparison_{category}.png"
+    out = OUTDIR / f"05_location_comparison_{category}.png"
     fig.savefig(out, dpi=150)
     plt.close(fig)
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     nl_categories = categories_of_crawl(ignore_dir, categories_by_host, "*.nl.har")
     uk_categories = categories_of_crawl(ignore_dir, categories_by_host, "*.uk.har")
     us_categories = categories_of_crawl(ignore_dir, categories_by_host, "*.edu.har")
-    print("sites per country:", len(nl_categories), len(uk_categories), len(us_categories))
+    print(f"Sites per country: NL = {len(nl_categories)}, UK ={len(uk_categories)}, US = {len(us_categories)}")
 
     advertising_counts = {
         "NL": count_sites_with_category("Advertising", nl_categories),
@@ -95,3 +95,6 @@ if __name__ == "__main__":
 
     plot(advertising_counts, "advertising", "5a")
     plot(analytics_counts, "analytics", "5b")
+    
+    print(f"Wrote {OUTDIR}/05_location_comparison_advertising.png")
+    print(f"Wrote {OUTDIR}/05_location_comparison_analytics.png")
