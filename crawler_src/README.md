@@ -61,6 +61,17 @@ doesn't download it at crawl time.
 Each finished site is appended to `crawled_<mode>.txt`. Reruns in the same mode will skip sites listed in that file.
 To crawl the whole list again, delete that file or move it somewhere else.
 
+## Analysis
+
+From repo root, after the crawls have finished.
+
+```
+python analysis/xx_analysis.py     (one question, xx = 01 to 12)
+python analysis/analyze.py         (all twelve in order)
+```
+
+Outputs in `results/` at repo root.
+
 ## Tests
 
 ```
