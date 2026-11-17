@@ -4,7 +4,7 @@ Analysis of the crawl data for Online Tracking & Privacy (NWI-IMC074) group assi
 
 ## Run
 
-From repo root, after the crawls have finished.
+From any folder, after the crawls have finished.
 
 A single analysis:
 
@@ -24,4 +24,4 @@ Script numbers match the question numbers in the assignment.
 
 ## Output
 
-Each individual script outputs the results of the analysis in `results/`. Depending on the script these can be in CSV, JSON and/or PNG format.
+Each individual script outputs the results of the analysis in `results/` at the repo root. Depending on the script these can be in CSV, JSON and/or PNG format.
