@@ -8,7 +8,7 @@ Assignment: "scroll down to the bottom of the homepage in multiple steps".
 from playwright.sync_api import Page
 
 # Local package imports
-from crawler import scroll_down
+from crawl import scroll_down
 
 # Fixture page is 20 blocks of 500 px. Viewport is Playwright's default 1280x720.
 TALL_PAGE_HEIGHT = 10_000

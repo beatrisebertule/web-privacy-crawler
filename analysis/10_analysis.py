@@ -29,12 +29,12 @@ from report_text import counted
 
 # crawler_src is not a package. Path entry instead of an install.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "crawler_src"))
-from crawler import read_site_list  # noqa: E402
+from crawl import read_site_list  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CRAWL_DIRECTORY = ROOT / "crawl_data_mobile"
 RESULTS_DIRECTORY = ROOT / "results"
-SITE_LIST_PATH = ROOT / "sites.csv"
+SITE_LIST_PATH = ROOT / "crawler_src" / "sites.csv"
 CSV_NAME = "10_permissions_policy_disabled_mobile.csv"
 TOP_FEATURE_COUNT = 5
 

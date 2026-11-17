@@ -12,7 +12,7 @@ import dns.exception
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "crawler_src"))
-from crawler import (
+from crawl import (
     DISCONNECT_SERVICES_PATH,
     listed_categories,
     load_disconnect_categories,
@@ -20,7 +20,7 @@ from crawler import (
 from final_page import final_page_host
 from first_party_responses import first_party_responses
 
-ENTITIES = ROOT / "entities.json"       # disconnect entities list (for metric d)
+ENTITIES = ROOT / "crawler_src" / "entities.json"  # Disconnect entities list
 
 OUTDIR = ROOT / "results"
 

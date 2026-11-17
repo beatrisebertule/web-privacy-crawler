@@ -17,7 +17,7 @@ from playwright.sync_api import Browser, Playwright
 
 # Local package imports
 from conftest import FIXTURES_DIRECTORY, NO_WAITS
-from crawler import (
+from crawl import (
     BLOCKED_CATEGORIES,
     DISCONNECT_SERVICES_PATH,
     REPO_ROOT,
@@ -193,7 +193,7 @@ def test_real_list_blocks_known_examples(real_categories: dict[str, frozenset[st
 
 
 def test_no_university_is_on_the_real_list(real_categories: dict[str, frozenset[str]]) -> None:
-    sites = read_site_list(REPO_ROOT / "sites.csv")
+    sites = read_site_list(REPO_ROOT / "crawler_src" / "sites.csv")
 
     listed = [
         host

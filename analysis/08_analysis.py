@@ -12,7 +12,7 @@ from final_page import final_page_host
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTDIR = ROOT / "results"
-TRANCO_PATH = ROOT / "tranco.csv" # Tranco list, one "rank,domain" per line
+TRANCO_PATH = ROOT / "crawler_src" / "tranco.csv" # Tranco list, one "rank,domain" per line
 TLD_COUNTRY = {"edu": "US", "nl": "NL", "uk": "UK"} # top-level domain -> country of the university
 
 def third_party_domains(har):
@@ -87,18 +87,19 @@ def plot(rows, name, arrow):
     fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
     
-    print(f"Wrote OUTDIR/{name}.png")
+    print(f"Wrote {out}")
 
 def number_of_domains(site):
     """Return the number of third-party domains of a (website, no_domains) pair, used to sort the websites"""
     return site[1]
  
 if __name__ == "__main__":
+    OUTDIR.mkdir(exist_ok=True)
     ranks = load_tranco_ranks(TRANCO_PATH)
     sites = sorted(domains_per_site(ROOT / "crawl_data_desktop"))
 
     highest = sorted(sites, key=number_of_domains, reverse=True)[:3] # (a) Top 3 websites with highest distinct 3rd party domain requests
     lowest = sorted(sites, key=number_of_domains)[:3] # (b) Top 3 websites with lowest distinct 3rd party domain requests
  
-    plot(make_table_rows(highest, ranks), "08_most_third_party_domains_desktop", "↓")
-    plot(make_table_rows(lowest, ranks), "08_fewest_third_party_domains_desktop", "↑")
+    plot(make_table_rows(highest, ranks), "most_third_party_domains_desktop", "↓")
+    plot(make_table_rows(lowest, ranks), "fewest_third_party_domains_desktop", "↑")

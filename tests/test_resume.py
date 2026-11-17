@@ -8,7 +8,7 @@ Everything here is plain file logic. No browser needed.
 from pathlib import Path
 
 # Local package imports
-from crawler import (
+from crawl import (
     CrawlMode,
     add_to_crawled_list,
     read_crawled_list,
@@ -79,7 +79,7 @@ def test_site_list_with_only_header_is_empty(tmp_path: Path) -> None:
 
 
 def test_repo_site_list_has_thirty_sites_ten_per_country() -> None:
-    sites = read_site_list(Path(__file__).resolve().parent.parent / "sites.csv")
+    sites = read_site_list(Path(__file__).resolve().parent.parent / "crawler_src" / "sites.csv")
 
     assert len(sites) == 30
     assert sorted(set(country for _, country in sites)) == ["nl", "uk", "us"]

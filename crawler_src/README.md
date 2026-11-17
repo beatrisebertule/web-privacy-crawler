@@ -21,17 +21,17 @@ the system libraries Chromium needs. On macOS and Linux the command may be `pyth
 
 ## Run
 
-From repo root. Chromium opens in a window so the crawl needs a desktop session, not a server
+From `crawler_src/`. Chromium opens in a window so the crawl needs a desktop session, not a server
 with no display. 
 
 Designed to only run one mode at a time, not several at once, to avoid getting blocked by bot 
 or spam protection.
 
 ```
-python crawler_src/crawler.py -m desktop -l sites.csv
-python crawler_src/crawler.py -m mobile  -l sites.csv
-python crawler_src/crawler.py -m block   -l sites.csv
-python crawler_src/crawler.py -m ignore  -l sites.csv
+python crawl.py -m desktop -l sites.csv
+python crawl.py -m mobile  -l sites.csv
+python crawl.py -m block   -l sites.csv
+python crawl.py -m ignore  -l sites.csv
 ```
 
 | Mode | Browser | Blocking | Consent |
@@ -41,7 +41,7 @@ python crawler_src/crawler.py -m ignore  -l sites.csv
 | `block` | Chromium, desktop | Disconnect blocklist | accept |
 | `ignore` | Chromium, desktop | none | no interaction |
 
-Outputs in `crawl_data_<mode>/`, one set of files per site:
+Outputs in `crawl_data_<mode>/` at repo root, one set of files per site:
 
 ```
 ru.nl.har

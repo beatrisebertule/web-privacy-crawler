@@ -13,7 +13,7 @@ import pytest
 from playwright.sync_api import Page
 
 # Local package imports
-from crawler import (
+from crawl import (
     ACCEPT_WORDS_PATH,
     CLOSE_WORDS,
     CLOSE_WORDS_PATH,
